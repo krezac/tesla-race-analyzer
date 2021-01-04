@@ -1,0 +1,13 @@
+#!/bin/bash
+
+IFS=',' read -ra tags <<< "$DOCKER_TAG"
+TAG_COMMAND=""
+
+for tag in "${tags[@]}"
+do
+    TAG_COMMAND="$TAG_COMMAND -t $DOCKER_REPO:$tag"
+done
+
+docker build --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+             --build-arg VCS_REF=`git rev-parse --short HEAD` \
+             $TAG_COMMAND .

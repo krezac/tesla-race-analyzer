@@ -1,0 +1,13 @@
+{
+  "title": "Car status",
+  "items": [
+    {
+      "field": "distance",
+      "label": "Total distance",
+      "format_function": "format_float_fn",
+      "format": "%.2f",
+      "unit": " km",
+      "default": "---"
+    }
+  ]
+}

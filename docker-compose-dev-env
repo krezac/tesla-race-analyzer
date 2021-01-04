@@ -1,0 +1,18 @@
+# this is for development (local docker-compose)
+
+TM_DB_HOST=172.17.0.1
+TM_DB_PORT=5432
+TM_DB_USER=teslamate
+TM_DB_PASS=secret
+TM_DB_NAME=teslamate
+
+TRAN_DB_HOST=172.17.0.1
+TRAN_DB_PORT=5432
+TRAN_DB_USER=tran
+TRAN_DB_PASS=tran_secret
+TRAN_DB_NAME=tran
+
+FLASK_APP=src/__init__.py
+SECRET_KEY=Z6hiiEeViGnaf7oGA1ROrVd1SDDcKVs6nj6HGalgdB4
+SECURITY_PASSWORD_SALT = 245566430388240650680293166088556633912
+

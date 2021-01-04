@@ -1,0 +1,11 @@
+# this is for development
+version: '2'
+services:
+    web:
+        build: .
+        ports:
+            - "5000:5000"
+        env_file:
+          - docker-compose-dev-env
+        #volumes:
+        #    - .:/code

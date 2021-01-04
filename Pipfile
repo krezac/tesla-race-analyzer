@@ -1,0 +1,31 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+
+[packages]
+flask = "*"
+flask-security-too = "*"
+flask-sqlalchemy = "*"
+flask-migrate = "*"
+flask-jwt-extended = "*"
+flask-restful = "*"
+
+gunicorn = "*"
+
+apscheduler = "*"
+
+email_validator = "*"
+pysqlite3 = "*"
+psycopg2-binary = "*"
+python-dotenv = "*"
+
+pendulum = "*"
+requests = "*"
+pydantic = "*"
+
+[requires]
+python_version = "3.8"
