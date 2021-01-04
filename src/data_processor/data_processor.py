@@ -7,7 +7,7 @@ from src.data_processor.calculated_fields_status import get_calculated_fields_st
 from src.data_processor.labels import generate_labels
 from src.data_models import LabelGroup
 
-# from src import config  # imports global configuration
+from src import config  # imports global configuration
 
 _initial_status = None
 _current_status = None
@@ -45,7 +45,7 @@ def get_car_status(car_id: int, dt: pendulum.DateTime) -> Dict[str, Any]:
     _current_status.update(new_fields)
 
     # TODO read from config
-    _current_status["distance_double"] = eval("current_status['distance'] * 2", {},  # no globals at all
+    _current_status["distance_double"] = eval("current_status['distance'] * 2 if 'distance' in current_status and current_status['distance'] is not None else None", {},  # no globals at all
                                               {  # explicitly allowed stuff local stuff only
                                                   'initial_status': _initial_status,
                                                   'current_status': _current_status,
@@ -56,5 +56,5 @@ def get_car_status(car_id: int, dt: pendulum.DateTime) -> Dict[str, Any]:
 
 def get_car_status_formatted(car_id: int, dt: pendulum.DateTime) -> LabelGroup:
     car_status = get_car_status(car_id, dt)
-    #items = generate_labels(config.status_formatted_fields.items, car_status)
-    #return LabelGroup(title=config.status_formatted_fields.title, items=items)
+    items = generate_labels(config.status_formatted_fields.items, car_status)
+    return LabelGroup(title=config.status_formatted_fields.title, items=items)

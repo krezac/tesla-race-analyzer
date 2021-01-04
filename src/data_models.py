@@ -32,6 +32,7 @@ class LabelGroup(BaseModel):
 
 
 class Config(BaseModel):
+    car_id: int
     start_latitude: float
     start_longitude: float
     start_time: pendulum.DateTime
