@@ -1,0 +1,7 @@
+#!/bin/bash
+
+BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+VCS_REF=`git rev-parse --short HEAD`
+
+echo "{\"date\": \"${BUILD_DATE}\", \"vcs_ref\": \"${VCS_REF}\"}"
+echo "{\"date\": \"${BUILD_DATE}\", \"vcs_ref\": \"${VCS_REF}\"}" > src/blueprints/api/templates/version.txt
