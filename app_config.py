@@ -17,7 +17,7 @@ class AppConfig:
     FLASK_ENV = 'development'
     TESTING = True
     # Generate a nice key using secrets.token_urlsafe()
-    SECRET_KEY = environ.get("SECRET_KEY", 'Z6hiiEeViGnaf7oGA1ROrVd1SDDcKVs6nj6HGalgdB4')
+    SECRET_KEY = environ.get("SECRET_KEY", 'test_key')
     STATIC_FOLDER = 'static'
     TEMPLATES_FOLDER = 'templates'
     DEBUG = True
@@ -48,3 +48,12 @@ class AppConfig:
     # Specifies if Flask-Security should create a user registration endpoint. (creates /register endpoint)
     # TODO remember to disable on prod once users are configured
     SECURITY_REGISTERABLE = environ.get("SECURITY_REGISTERABLE", False)
+
+    SECURITY_POST_LOGIN_VIEW = '../admin/'
+
+    # Specifies whether registration email is sent.
+    SECURITY_SEND_REGISTER_EMAIL = False
+
+    # Flask-admin
+    # set optional bootswatch theme
+    FLASK_ADMIN_SWATCH = 'cerulean'

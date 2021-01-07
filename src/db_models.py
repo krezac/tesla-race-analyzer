@@ -3,6 +3,7 @@ import pendulum
 
 from . import db
 from flask_security.models import fsqla_v2 as fsqla
+from sqlalchemy import UniqueConstraint
 
 
 class User(db.Model, fsqla.FsUserMixin):
@@ -13,19 +14,92 @@ class User(db.Model, fsqla.FsUserMixin):
 class Role(db.Model, fsqla.FsRoleMixin):
     pass
 
+
 class Driver(db.Model):
     __tablename__ = 'drivers'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
+    #driver_changes = db.relationship('DriverChange', backref='driver', lazy=True, foreign_keys=['DriverChange.driver_id'])
+    #copilot_changes = db.relationship('DriverChange', backref='copilot', lazy=True, foreign_keys=['DriverChange.copilot_id'])
+
+    def __repr__(self):
+        return self.name
 
 
-# there is intentionally no FK to drivers
 class DriverChange(db.Model):
     __tablename__ = 'driver_changes'
 
     id = db.Column(db.Integer, primary_key=True)
-    driver_name = db.Column(db.String, nullable=False)
-    copilot_name = db.Column(db.String, nullable=True)
+    driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False)
+    copilot_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=True)
     valid_from = db.Column(db.DateTime, nullable=False, default=pendulum.now(tz='utc'))
     valid_to = db.Column(db.DateTime, nullable=True)
+    driver = db.relationship("Driver", foreign_keys='DriverChange.driver_id')
+    copilot = db.relationship("Driver", foreign_keys='DriverChange.copilot_id')
+
+
+class LabelGroup(db.Model):
+    __tablename__ = 'label_groups'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String, nullable=False)
+    title = db.Column(db.String, nullable=True)
+    #formats = db.relationship('LabelFormat', backref='label_group', lazy=True)
+
+    def __repr__(self):
+        return self.code
+
+
+class LabelFormat(db.Model):
+    __tablename__ = 'label_formats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('label_groups.id'), nullable=False)
+    field = db.Column(db.String, nullable=False)
+    label = db.Column(db.String, nullable=True)
+    format_function = db.Column(db.String, nullable=True)
+    format = db.Column(db.String, nullable=True)
+    unit = db.Column(db.String, nullable=True)
+    default = db.Column(db.String, nullable=True)
+    order_key = db.Column(db.Integer, nullable=False)
+    group = db.relationship("LabelGroup", foreign_keys='LabelFormat.group_id')
+
+    # explicit/composite unique constraint.  'name' is optional.
+    UniqueConstraint('group_code', 'field', name='uix_label_format_group_field')
+    UniqueConstraint('group_code', 'order_key', name='uix_label_format_group_order')
+
+    def __repr__(self):
+        return self.field
+
+
+class FieldScope(db.Model):
+    __tablename__ = 'field_scopes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String, nullable=False)
+    title = db.Column(db.String, nullable=False)
+    #fields = db.relationship('CalculatedField', backref='field_scope', lazy=True)
+
+    def __repr__(self):
+        return self.code
+
+
+class CalculatedField(db.Model):
+    __tablename__ = 'calculated_fields'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=True)
+    return_type = db.Column(db.String, nullable=False)
+    calc_fn = db.Column(db.String, nullable=False)
+    order_key = db.Column(db.Integer, nullable=False)
+    scope_id = db.Column(db.Integer, db.ForeignKey('field_scopes.id'), nullable=False)
+    scope = db.relationship("FieldScope", foreign_keys='CalculatedField.scope_id')
+
+    # explicit/composite unique constraint.  'name' is optional.
+    UniqueConstraint('scope_code', 'name', name='uix_field_scope_name')
+    UniqueConstraint('scope_code', 'order_key', name='uix_field_scope_order')
+
+    def __repr__(self):
+        return self.name

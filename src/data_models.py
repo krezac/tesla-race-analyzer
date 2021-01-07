@@ -1,7 +1,21 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Callable, Type
 import pendulum
 import os
+
+
+class DatabaseFieldDescription(BaseModel):
+    name: str
+    description: Optional[str]
+    return_type: Optional[str]
+
+
+class CalculatedFieldDescription(DatabaseFieldDescription):
+    calc_fn: Optional[str]
+
+
+class FieldDescriptionList(BaseModel):
+    items: List[DatabaseFieldDescription]
 
 
 class LabelConfigItem(BaseModel):
@@ -33,6 +47,7 @@ class LabelGroup(BaseModel):
 
 class Config(BaseModel):
     car_id: int
+    index_page: str
     start_latitude: float
     start_longitude: float
     start_time: pendulum.DateTime
