@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Callable, Type
 import pendulum
+import datetime
 import os
 
 
@@ -51,9 +52,14 @@ class Config(BaseModel):
     start_latitude: float
     start_longitude: float
     start_time: pendulum.DateTime
+    hours: int
 
     status_formatted_fields_file: Optional[str]
     status_formatted_fields: Optional[LabelConfigDefinition]
+
+    def post_process(self):
+        if isinstance(self.start_time, datetime.datetime):
+            self.start_time = pendulum.from_timestamp(self.start_time.timestamp(), tz='utc')
 
     def load_sub_files(self, config_dir: str):
         if self.status_formatted_fields_file:

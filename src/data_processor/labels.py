@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, NamedTuple
 import pendulum
 import logging
 
@@ -38,20 +38,19 @@ def _format_value(raw_value, config_item: LabelConfigItem):
     return f"{raw_value}{config_item.unit if config_item.unit else ''}"
 
 
-def _generate_label(config_item: LabelConfigItem, data_dict: Dict) -> LabelItem:
-    if config_item.field not in data_dict:
-        logger.error(f"field {config_item.field} does not exist in data_dict ({data_dict}). Misconfiguration, please fix")
+def _generate_label(config_item: LabelConfigItem, data: NamedTuple) -> LabelItem:
+    raw_value = getattr(data, config_item.field)
+    if raw_value is None:
+        logger.error(f"field {config_item.field} does not exist in data_dict ({data}). Misconfiguration, please fix")
         return LabelItem(label=config_item.label, value=config_item.default)  # misconfiguration
-    raw_value = data_dict[config_item.field]
-    # TODO implement formatting
     value = _format_value(raw_value, config_item)
     return LabelItem(label=config_item.label, value=value)
 
 
-def generate_labels(config_items: List[LabelConfigItem], data_dict: Dict) -> List[LabelItem]:
+def generate_labels(config_items: List[LabelConfigItem], data: NamedTuple) -> List[LabelItem]:
     out = []
     for config_item in config_items:
-        item = _generate_label(config_item, data_dict)
+        item = _generate_label(config_item, data)
         out.append(item)
     return out
 

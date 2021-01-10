@@ -1,19 +1,19 @@
 """Initialize Flask app."""
 from os import path
-from flask import Flask, render_template_string, url_for
+from flask import Flask, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_security import Security, SQLAlchemyUserDatastore, auth_required, hash_password, roles_required
+from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_security.models import fsqla_v2 as fsqla
 from src.data_models import Config
 from flask_jwt_extended import JWTManager
 from flask_admin import Admin
 from flask_admin import helpers as admin_helpers
-from flask_admin.menu import MenuLink
 import logging
 import sys
 
 from src.admin_views.admin_views import MyAdminView, MyAuthView, MyLogoutView, LabelFormatView, CalculatedFieldView
+from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
 
 # global config (meant to be read only besides the admin doing POST case) !!!
 
@@ -28,6 +28,7 @@ def load_config(app: Flask):
     global config
     p = path.join(app.config["CONFIG_DIR"], app.config["CONFIG_FILE"])
     config = Config.parse_file(p)
+    config.post_process()
     config.load_sub_files(app.config["CONFIG_DIR"])
 
 
@@ -110,5 +111,50 @@ def create_app():
                 h=admin_helpers,
                 get_url=url_for
             )
+
+        @app.before_first_request
+        def before_first_request():
+            # Create any database tables that don't exist yet.  (? remove on prod ?
+            db.create_all()
+
+            # Create the Roles "admin" and "end-user" -- unless they already exist
+            user_datastore.find_or_create_role(name='admin', description='Administrator')
+            user_datastore.find_or_create_role(name='api', description='API service role')
+
+            if not user_datastore.find_user(email="admin@example.com"):
+                user_datastore.create_user(email="admin@example.com", password=hash_password("password"))
+            # Commit any database changes; the User and Roles must exist before we can add a Role to the User
+            db.session.commit()
+
+            # Assign roles. Again, commit any database changes.
+            user_datastore.add_role_to_user('admin@example.com', 'admin')
+            db.session.commit()
+
+            # populate code tables
+            # label groups
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.STATUS.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.STATUS.value, title='Car Status'))
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.MAP.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.MAP.value, title='Car Status on map'))
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.TOTAL_LAP.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.TOTAL_LAP.value, title='Total Lap'))
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.CURRENT_LAP.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.CURRENT_LAP.value, title='Current Lap'))
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.PREVIOUS_LAPS.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.PREVIOUS_LAPS.value, title='Previous Laps'))
+            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.FORECAST.value).first():
+                db.session.add(LabelGroup(code=LabelFormatGroupEnum.FORECAST.value, title='Forecast'))
+
+            # calculated field scopes
+            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.STATUS.value).first():
+                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.STATUS.value, title='Car Status'))
+            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.LAP_POINT.value).first():
+                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.LAP_POINT.value, title='Lap Point'))
+            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.LAP.value).first():
+                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.LAP.value, title='Lap'))
+            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.FORECAST.value).first():
+                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.FORECAST.value, title='forecast'))
+
+            db.session.commit()
 
         return app

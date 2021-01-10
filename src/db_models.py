@@ -4,7 +4,7 @@ import pendulum
 from . import db
 from flask_security.models import fsqla_v2 as fsqla
 from sqlalchemy import UniqueConstraint
-
+from typing import Optional
 
 class User(db.Model, fsqla.FsUserMixin):
     pass
@@ -19,7 +19,7 @@ class Driver(db.Model):
     __tablename__ = 'drivers'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
     #driver_changes = db.relationship('DriverChange', backref='driver', lazy=True, foreign_keys=['DriverChange.driver_id'])
     #copilot_changes = db.relationship('DriverChange', backref='copilot', lazy=True, foreign_keys=['DriverChange.copilot_id'])
 
@@ -43,7 +43,7 @@ class LabelGroup(db.Model):
     __tablename__ = 'label_groups'
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String, nullable=False)
+    code = db.Column(db.String, nullable=False, unique=True)
     title = db.Column(db.String, nullable=True)
     #formats = db.relationship('LabelFormat', backref='label_group', lazy=True)
 
@@ -72,12 +72,19 @@ class LabelFormat(db.Model):
     def __repr__(self):
         return self.field
 
+    @classmethod
+    def get_all_by_group(cls, label_group_code):
+        label_group: Optional[LabelGroup] = LabelGroup.query.filter_by(code=label_group_code).first()
+        if not label_group:
+            raise Exception("invalid group code")
+        return LabelFormat.query.filter_by(group_id=label_group.id).all()
+
 
 class FieldScope(db.Model):
     __tablename__ = 'field_scopes'
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String, nullable=False)
+    code = db.Column(db.String, nullable=False, unique=True)
     title = db.Column(db.String, nullable=False)
     #fields = db.relationship('CalculatedField', backref='field_scope', lazy=True)
 
@@ -100,6 +107,13 @@ class CalculatedField(db.Model):
     # explicit/composite unique constraint.  'name' is optional.
     UniqueConstraint('scope_code', 'name', name='uix_field_scope_name')
     UniqueConstraint('scope_code', 'order_key', name='uix_field_scope_order')
+
+    @classmethod
+    def get_all_by_scope(cls, field_scope_code):
+        field_scope: Optional[FieldScope] = FieldScope.query.filter_by(code=field_scope_code).first()
+        if not field_scope:
+            raise Exception("invalid field scope")
+        return CalculatedField.query.filter_by(scope_id=field_scope.id).all()
 
     def __repr__(self):
         return self.name
