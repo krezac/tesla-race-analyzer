@@ -37,7 +37,8 @@ class CalculatedFieldApi(BaseModel):
 
 
 class CalculatedFieldApiList(BaseModel):
-    __root__: List[CalculatedFieldApi]
+    title: Optional[str]
+    items: List[CalculatedFieldApi]
 
 
 class LabelGroupApi(BaseModel):
@@ -178,12 +179,14 @@ def configure_calculated_fields(field_scope_code):
 
     if request.method == 'POST':
         ensure_jwt_has_user_role('admin')
-        j_list = request.get_json()
+        json_request = request.get_json()
+        new_scope_title = json_request.get('title')
+        j_list = json_request['items']
         obj_list = []
         order_key = 1
         # transform to objects, add order key
         for j in j_list:
-            obj = CalculatedField(**j, order_key=order_key, group_id=field_scope.id)
+            obj = CalculatedField(**j, order_key=order_key, scope_id=field_scope.id)
             order_key += 1
             obj_list.append(obj)
 
@@ -193,15 +196,18 @@ def configure_calculated_fields(field_scope_code):
             db.session.delete(cf)
         for obj in obj_list:
             db.session.add(obj)
+        if field_scope.title != new_scope_title:
+            field_scope.title = new_scope_title
+            db.session.add(field_scope)
         db.session.commit()
 
     # get the current status
     fields = CalculatedField.query.filter_by(scope_id=field_scope.id).order_by(CalculatedField.order_key).all()
-    wrapper = CalculatedFieldApiList(__root__=[])
+    wrapper = CalculatedFieldApiList(title=field_scope.title, items=[])
     for field in fields:
-        wrapper.__root__.append(CalculatedFieldApi.from_orm(field))
+        wrapper.items.append(CalculatedFieldApi.from_orm(field))
 
-    return Response(wrapper.json(exclude={'__root__': {'__all__': {'order_key'}}}), mimetype='application/json')
+    return Response(wrapper.json(exclude={'items': {'__all__': {'order_key'}}}), mimetype='application/json')
 
 
 @api_bp.route('/config/labels/<label_group_code>', methods=['GET', 'POST'])
