@@ -3,14 +3,14 @@ from flask import jsonify as jsonify_native
 import pendulum
 import json
 from typing import Optional, List
-from flask_jwt_extended import jwt_required
 from pydantic import BaseModel
 
 from src import config, db
 from src.db_models import LabelGroup, LabelFormat, FieldScope, CalculatedField
-from src.jwt_roles import jwt_ex_role_required
+from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 
-from src.data_processor.data_processor import get_car_status_formatted, get_car_status, describe_status_fields, get_car_laps
+from src.data_processor.data_processor import get_car_status_formatted, get_car_status, describe_status_fields, \
+    get_car_positions, get_car_laps
 
 
 class FieldScopeApi(BaseModel):
@@ -115,16 +115,23 @@ def version():
 ################################
 
 @api_bp.route('/car/status/raw')
-# @jwt_ex_role_required('admin')  # @jwt_required
+@jwt_ex_role_required('admin')  # @jwt_required
 def get_status_raw():
     resp = get_car_status(pendulum.now(tz='utc'))
-    return _jsonify(resp._asdict())
+    return _jsonify(resp)
+
+
+@api_bp.route('/car/positions/raw')
+@jwt_ex_role_required('admin')  # @jwt_required
+def get_positions_raw():
+    resp = get_car_positions(pendulum.now(tz='utc'))
+    return _jsonify(resp)
 
 
 @api_bp.route('/car/laps/raw')
-# @jwt_ex_role_required('admin')  # @jwt_required
+@jwt_ex_role_required('admin')  # @jwt_required
 def get_laps_raw():
-    resp = get_car_laps(config.car_id, pendulum.now(tz='utc'))
+    resp = get_car_laps(pendulum.now(tz='utc'))
     return _jsonify(resp)
 
 
@@ -156,13 +163,13 @@ def get_field_scopes():
 
 
 @api_bp.route('/config/fields/<field_scope_code>', methods=['GET', 'POST'])
-# @jwt_ex_role_required('admin')  # @jwt_required
-def configure_calculated_dields(field_scope_code):
+def configure_calculated_fields(field_scope_code):
     field_scope: Optional[FieldScope] = FieldScope.query.filter_by(code=field_scope_code).first()
     if not field_scope:
         abort(400, 'invalid scope code')
 
     if request.method == 'POST':
+        ensure_jwt_has_user_role('admin')
         j_list = request.get_json()
         obj_list = []
         order_key = 1
@@ -190,13 +197,13 @@ def configure_calculated_dields(field_scope_code):
 
 
 @api_bp.route('/config/labels/<label_group_code>', methods=['GET', 'POST'])
-# @jwt_ex_role_required('admin')  # @jwt_required
 def configure_labels(label_group_code):
     label_group: Optional[LabelGroup] = LabelGroup.query.filter_by(code=label_group_code).first()
     if not label_group:
         abort(400, 'invalid group code')
 
     if request.method == 'POST':
+        ensure_jwt_has_user_role('admin')
         j_list = request.get_json()
         obj_list = []
         order_key = 1

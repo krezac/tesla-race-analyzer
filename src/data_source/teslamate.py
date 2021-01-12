@@ -48,24 +48,17 @@ def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = 
         resp2 = _cursor_one_to_dict(resultproxy)
         if resp is not None and resp2:
             resp.update(resp2)
-
-    # we have dictionary
-    row_type = namedtuple('row_type', resp.keys())
-    row = row_type(*resp.values())
-    return row
+    return resp
 
 
 @function_timer()
-def get_car_positions(car_id: int, dt: pendulum.DateTime, hours: int, update_fast_data: bool = True) -> List[NamedTuple]:
-    out = []
-
+def get_car_positions(car_id: int, dt: pendulum.DateTime, hours: int, update_fast_data: bool = True) -> List[Dict[str, Any]]:
     # get the full records  #####   AND usable_battery_level IS NOT NULL
     sql = text("""SELECT * FROM positions 
-                  WHERE car_id = :car_id AND date >= :dt AND date <= (:dt + interval ':hours hours') 
+                  WHERE car_id = :car_id AND date >= :dt AND date <= (:dt + interval ':hours hours')
+                  AND usable_battery_level IS NOT NULL 
                   ORDER BY date""")
     resultproxy = db.get_engine(bind='teslamate').execute(sql, {'car_id': car_id, 'dt': dt, 'hours': hours})
-
-    row_type = namedtuple('row_type', resultproxy.keys())
-    return [row_type(*r) for r in resultproxy.fetchall()]
+    return _cursor_one_to_dict_list(resultproxy)
 
 

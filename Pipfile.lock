@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "40a9ce403416c7655b1819467d6fd44c560396e0d8dbf7bf0c271cda656845a8"
+            "sha256": "ae2c16b7a3aa9392cd8c34eab6b90e9ece66b7883fe20469d97f3ea98e5f473d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -74,10 +74,10 @@
         },
         "dnspython": {
             "hashes": [
-                "sha256:044af09374469c3a39eeea1a146e8cac27daec951f1f1f157b1962fc7cb9d1b7",
-                "sha256:40bb3c24b9d4ec12500f0124288a65df232a3aa749bb0c39734b782873a2544d"
+                "sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216",
+                "sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4"
             ],
-            "version": "==2.0.0"
+            "version": "==2.1.0"
         },
         "email-validator": {
             "hashes": [
@@ -153,11 +153,11 @@
         },
         "flask-security-too": {
             "hashes": [
-                "sha256:12cecf666e5e76d59e079976c1348de3158579196ec65ac47f450dc5bc0020b2",
-                "sha256:3c52b0e0c8453a012122aad102041fd71bd1ea025f5154bbfb1d20b4c6a4477e"
+                "sha256:a09d051ed7616a99dcaa604e718792319521820e245758fe1f42f7554c538da5",
+                "sha256:e67980297bb0e5b726b79164f9214af8548d67d3923e405cdd1a475bc53a4cc5"
             ],
             "index": "pypi",
-            "version": "==3.4.4"
+            "version": "==3.4.5"
         },
         "flask-sqlalchemy": {
             "hashes": [
@@ -173,6 +173,21 @@
                 "sha256:d417e3a0008b5ba583da1763e4db0f55a1269d9dd91dcc3eb3c026d3c5dbd720"
             ],
             "version": "==0.14.3"
+        },
+        "geographiclib": {
+            "hashes": [
+                "sha256:12bd46ee7ec25b291ea139b17aa991e7ef373e21abd053949b75c0e9ca55c632",
+                "sha256:51cfa698e7183792bce27d8fb63ac8e83689cd8170a730bf35e1a5c5bf8849b9"
+            ],
+            "version": "==1.50"
+        },
+        "geopy": {
+            "hashes": [
+                "sha256:4db8a2b79a2b3358a7d020ea195be639251a831a1b429c0d1b20c9f00c67c788",
+                "sha256:892b219413e7955587b029949af3a1949c6fbac9d5ad17b79d850718f6a9550f"
+            ],
+            "index": "pypi",
+            "version": "==2.1.0"
         },
         "gunicorn": {
             "hashes": [

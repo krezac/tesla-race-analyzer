@@ -28,5 +28,7 @@ pendulum = "*"
 requests = "*"
 pydantic = "*"
 
+geopy="*"
+
 [requires]
 python_version = "3.8"

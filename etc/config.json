@@ -5,6 +5,10 @@
   "hours": 24,
   "start_latitude": 49.532277,
   "start_longitude": 12.135311,
+  "start_radius": 0.1,
+  "merge_from_lap": 1,
+  "laps_merged": 1,
+
 
   "status_formatted_fields_file": "status_formatted_fields.json"
 }

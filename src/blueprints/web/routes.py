@@ -14,7 +14,7 @@ web_bp = Blueprint(
 
 @web_bp.route('/jwt_token', methods=['GET'])
 def jwt_token():
-    access_token = create_access_token(identity='test')
+    access_token = create_access_token(identity='test', expires_delta=False)  # TODO make the tokens expire in real life
     return jsonify(access_token=access_token), 200
 
 

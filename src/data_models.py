@@ -53,6 +53,9 @@ class Config(BaseModel):
     start_longitude: float
     start_time: pendulum.DateTime
     hours: int
+    start_radius: float
+    merge_from_lap: float
+    laps_merged: float
 
     status_formatted_fields_file: Optional[str]
     status_formatted_fields: Optional[LabelConfigDefinition]
