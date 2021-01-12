@@ -66,7 +66,8 @@ class LabelFormatApi(BaseModel):
 
 
 class LabelFormatApiList(BaseModel):
-    __root__: List[LabelFormatApi]
+    title: Optional[str]
+    items: List[LabelFormatApi]
 
 
 api_bp = Blueprint('api_bp', __name__,
@@ -211,7 +212,9 @@ def configure_labels(label_group_code):
 
     if request.method == 'POST':
         ensure_jwt_has_user_role('admin')
-        j_list = request.get_json()
+        json_request = request.get_json()
+        new_group_title = json_request.get('title')
+        j_list = json_request['items']
         obj_list = []
         order_key = 1
         # transform to objects, add order key
@@ -226,12 +229,15 @@ def configure_labels(label_group_code):
             db.session.delete(lf)
         for obj in obj_list:
             db.session.add(obj)
+        if label_group.title != new_group_title:
+            label_group.title = new_group_title
+            db.session.add(label_group)
         db.session.commit()
 
     # get the current status
     labels = LabelFormat.query.filter_by(group_id=label_group.id).order_by(LabelFormat.order_key).all()
-    wrapper = LabelFormatApiList(__root__=[])
+    wrapper = LabelFormatApiList(title=label_group.title, items=[])
     for label in labels:
-        wrapper.__root__.append(LabelFormatApi.from_orm(label))
+        wrapper.items.append(LabelFormatApi.from_orm(label))
 
-    return Response(wrapper.json(exclude={'__root__': {'__all__': {'id', 'order_key'}}}), mimetype='application/json')
+    return Response(wrapper.json(exclude={'items': {'__all__': {'id', 'order_key'}}}), mimetype='application/json')

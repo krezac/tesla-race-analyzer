@@ -68,3 +68,11 @@ class Config(BaseModel):
         if self.status_formatted_fields_file:
             p = os.path.join(config_dir, self.status_formatted_fields_file)
             self.status_formatted_fields = LabelConfigDefinition.parse_file(p)
+
+
+class JsonStatusResponse(BaseModel):
+    lat: float
+    lon: float
+    mapLabels: LabelGroup
+    textLabels: LabelGroup
+    forecastLabels: LabelGroup

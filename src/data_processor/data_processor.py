@@ -5,7 +5,8 @@ from datetime import datetime
 import src.data_source.teslamate
 from src.data_processor.database_fields import get_database_fields_status
 from src.data_processor.labels import generate_labels
-from src.data_models import LabelGroup, DatabaseFieldDescription, CalculatedFieldDescription, FieldDescriptionList
+from src.data_models import LabelGroup, DatabaseFieldDescription, CalculatedFieldDescription, FieldDescriptionList, \
+    JsonStatusResponse
 from src.utils import function_timer, function_timer_block
 from collections import namedtuple
 
@@ -129,9 +130,26 @@ def _update_car_status():
                                            )
 
     # now generate the formatted one
-    formatted_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.STATUS.value),
+    formatted_map_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.MAP.value),
                                       _current_status_raw)
-    _current_status_formatted = LabelGroup(title=config.status_formatted_fields.title, items=formatted_items)
+
+    formatted_status_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.STATUS.value),
+                                      _current_status_raw)
+
+    formatted_forecast_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.FORECAST.value),
+                                      _current_status_raw)
+
+    db_label_group_map = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.MAP.value).first()
+    db_label_group_status = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.STATUS.value).first()
+    db_label_group_forecast = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.FORECAST.value).first()
+
+    _current_status_formatted = JsonStatusResponse(
+        lat=_current_status_raw['latitude'],
+        lon=_current_status_raw['longitude'],
+        mapLabels=LabelGroup(title=db_label_group_map.title, items=formatted_map_items),
+        textLabels=LabelGroup(title=db_label_group_status.title, items=formatted_status_items),
+        forecastLabels=LabelGroup(title=db_label_group_forecast.title, items=formatted_forecast_items))
+
 
 
 @function_timer()
@@ -256,10 +274,10 @@ def _update_forecast():
 
     _forecast_raw = forecast  # publish once ready
 
-    # now generate the formatted one
-    formatted_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.FORECAST.value),
-                                      _forecast_raw)
-    _current_status_formatted = LabelGroup(title=config.status_formatted_fields.title, items=formatted_items)
+    # # now generate the formatted one
+    # formatted_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.FORECAST.value),
+    #                                   _forecast_raw)
+    # _current_status_formatted = LabelGroup(title=config.status_formatted_fields.title, items=formatted_items)
 
 
 def get_car_status(dt: pendulum.DateTime) -> Dict[str, Any]:
@@ -298,7 +316,7 @@ def get_forecast(dt: pendulum.DateTime) -> Dict[str, Any]:
     return _forecast_raw
 
 
-def get_car_status_formatted(dt: pendulum.DateTime) -> LabelGroup:
+def get_car_status_formatted(dt: pendulum.DateTime) -> JsonStatusResponse:
     global _current_status_formatted
 
     # TODO for the development time, update on every try if not _current_status_formatted:
