@@ -1,4 +1,4 @@
-from typing import Optional, NamedTuple, List
+from typing import Optional, NamedTuple, List, Dict, Any
 import pendulum
 from geopy.distance import distance as geopy_distance
 
@@ -6,40 +6,47 @@ from src.data_models import CalculatedFieldDescription
 from src import config
 
 
-def calc_fn_distance(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_distance(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     initial_odo = initial_status['odometer'] if 'odometer' in initial_status else None
     current_odo = current_status['odometer'] if 'odometer' in current_status else None
     return current_odo - initial_odo if current_odo is not None and initial_odo is not None else None
 
 
-def calc_fn_air_distance(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_air_distance(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     return geopy_distance(
         (config.start_latitude, config.start_longitude),
         (current_status['latitude'], current_status['longitude'])
     ).km if current_status['latitude'] is not None and current_status['longitude'] is not None else None
 
 
-def calc_fn_start_time(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_start_time(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     return config.start_time
 
 
-def calc_fn_end_time(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_end_time(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     return config.start_time.add(hours=config.hours)
 
 
-def calc_fn_time_since_start(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_time_since_start(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     start_time = config.start_time
     now = pendulum.now(tz='utc')
     return pendulum.period(start_time, now, True) if now >= start_time else pendulum.period(now, now, True)
 
 
-def calc_fn_time_to_end(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_time_to_end(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     end_time = config.start_time.add(hours=config.hours)
     now = pendulum.now(tz='utc')
     return pendulum.period(now, end_time, True) if now <= end_time else pendulum.period(now, now, True)
 
 
-def calc_fn_lap_number(initial_status: NamedTuple, current_status: NamedTuple, lap_list: List[NamedTuple]) -> Optional[float]:
+def calc_fn_lap_number(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
+                     lap_list, forecast, current_item_index: Optional[int]) -> Optional[float]:
     return lap_list[-1].id if lap_list else None
 
 

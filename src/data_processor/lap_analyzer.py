@@ -3,7 +3,7 @@
 import pendulum
 
 from geopy.distance import distance as geopy_distance
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
 import statistics
@@ -33,7 +33,7 @@ class LapStatus(BaseModel):
 
 
 @function_timer()
-def find_laps(configuration: Config, segment, region=10, min_time=5, start_idx=0) -> List[LapSplit]:
+def find_laps(configuration: Config, segment, region=10, min_time=5, start_idx=0) -> List[Dict[str, Any]]:
     """Return laps given latitude & longitude data.
 
     We assume that the first point defines the start and
@@ -178,7 +178,7 @@ def extract_lap_statuses(configuration: Config, splits: List[LapSplit], segment:
     return out
 
 
-def extract_lap_status(configuration: Config, split: LapSplit, segment) -> LapStatus:
+def extract_lap_status(configuration: Config, split: LapSplit, segment) -> Dict[str, Any]:
     """ Lap data from database:
     xx id |
     xx date           |
@@ -224,38 +224,44 @@ def extract_lap_status(configuration: Config, split: LapSplit, segment) -> LapSt
     #
     # real_energy_km = real_energy / (lap_data[-1].odometer - lap_data[0].odometer) * 1000
 
+    lap = {
+        "id": split.lapId,
+        "lap_data": lap_data,
+        "pit_data": pit_data,
+    }
 
-    ls =  LapStatus(
-        id=split.lapId,
-        startTime=pendulum.instance(lap_data[0]['date'], 'utc') if split.lapEntryIdx is not None else None,
-        endTime=pendulum.instance(lap_data[-1]['date'], 'utc') if split.lapEntryIdx is not None else None,
 
-        startTimePit=pendulum.instance(pit_data[0]['date'], 'utc') if split.pitEntryIdx is not None else None,
-        endTimePit=pendulum.instance(pit_data[-1]['date'], 'utc') if split.lapEntryIdx is not None else None,
-
-        startOdo=lap_data[0]['odometer'] if split.lapEntryIdx is not None else None,
-        endOdo=lap_data[-1]['odometer'] if split.lapEntryIdx is not None else None,  # to be able to show current lap
-
-        insideTemp=statistics.mean([l['inside_temp'] for l in lap_data if l['inside_temp']]),
-        outsideTemp=statistics.mean([l['outside_temp'] for l in lap_data if l['outside_temp']]),
-
-        # startSOC=lap_data[0].usable_battery_level if split.lapEntryIdx is not None else None,
-        # endSOC=lap_data[-1].usable_battery_level if split.lapEntryIdx is not None else None,
-        #
-        # startRangeIdeal=lap_data[0].ideal_battery_range_km if split.lapEntryIdx is not None else None,
-        # endRangeIdeal=lap_data[-1].ideal_battery_range_km if split.lapEntryIdx is not None else None,
-        #
-        # startRangeEst=lap_data[0].est_battery_range_km if split.lapEntryIdx is not None else None,
-        # endRangeEst=lap_data[-1].est_battery_range_km if split.lapEntryIdx is not None else None,
-        #
-        # startRangeRated=lap_data[0].rated_battery_range_km if split.lapEntryIdx is not None else None,
-        # endRangeRated=lap_data[-1].rated_battery_range_km if split.lapEntryIdx is not None else None,
-        #
-        # consumptionRated=configuration.consumptionRated,
-        # finished=True,  # will be cleared later if needed
-        #
-        # real_energy=real_energy,
-        # real_energy_km=real_energy_km,
-        # real_energy_hour=real_energy_hour,
-    )
-    return ls
+    # ls =  LapStatus(
+    #     id=split.lapId,
+    #     startTime=pendulum.instance(lap_data[0]['date'], 'utc') if split.lapEntryIdx is not None else None,
+    #     endTime=pendulum.instance(lap_data[-1]['date'], 'utc') if split.lapEntryIdx is not None else None,
+    #
+    #     startTimePit=pendulum.instance(pit_data[0]['date'], 'utc') if split.pitEntryIdx is not None else None,
+    #     endTimePit=pendulum.instance(pit_data[-1]['date'], 'utc') if split.lapEntryIdx is not None else None,
+    #
+    #     startOdo=lap_data[0]['odometer'] if split.lapEntryIdx is not None else None,
+    #     endOdo=lap_data[-1]['odometer'] if split.lapEntryIdx is not None else None,  # to be able to show current lap
+    #
+    #     insideTemp=statistics.mean([l['inside_temp'] for l in lap_data if l['inside_temp']]),
+    #     outsideTemp=statistics.mean([l['outside_temp'] for l in lap_data if l['outside_temp']]),
+    #
+    #     # startSOC=lap_data[0].usable_battery_level if split.lapEntryIdx is not None else None,
+    #     # endSOC=lap_data[-1].usable_battery_level if split.lapEntryIdx is not None else None,
+    #     #
+    #     # startRangeIdeal=lap_data[0].ideal_battery_range_km if split.lapEntryIdx is not None else None,
+    #     # endRangeIdeal=lap_data[-1].ideal_battery_range_km if split.lapEntryIdx is not None else None,
+    #     #
+    #     # startRangeEst=lap_data[0].est_battery_range_km if split.lapEntryIdx is not None else None,
+    #     # endRangeEst=lap_data[-1].est_battery_range_km if split.lapEntryIdx is not None else None,
+    #     #
+    #     # startRangeRated=lap_data[0].rated_battery_range_km if split.lapEntryIdx is not None else None,
+    #     # endRangeRated=lap_data[-1].rated_battery_range_km if split.lapEntryIdx is not None else None,
+    #     #
+    #     # consumptionRated=configuration.consumptionRated,
+    #     # finished=True,  # will be cleared later if needed
+    #     #
+    #     # real_energy=real_energy,
+    #     # real_energy_km=real_energy_km,
+    #     # real_energy_hour=real_energy_hour,
+    # )
+    return lap

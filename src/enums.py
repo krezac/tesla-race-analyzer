@@ -12,7 +12,7 @@ class LabelFormatGroupEnum(Enum):
 
 class CalculatedFieldScopeEnum(Enum):
     STATUS = 'status'
-    LAP_POINT = 'lap_point'
+    POSITION = 'position'
     LAP = 'lap'
     FORECAST = 'forecast'
 

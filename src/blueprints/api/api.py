@@ -10,7 +10,7 @@ from src.db_models import LabelGroup, LabelFormat, FieldScope, CalculatedField
 from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 
 from src.data_processor.data_processor import get_car_status_formatted, get_car_status, describe_status_fields, \
-    get_car_positions, get_car_laps
+    get_car_positions, get_car_laps, get_forecast
 
 
 class FieldScopeApi(BaseModel):
@@ -132,6 +132,13 @@ def get_positions_raw():
 @jwt_ex_role_required('admin')  # @jwt_required
 def get_laps_raw():
     resp = get_car_laps(pendulum.now(tz='utc'))
+    return _jsonify(resp)
+
+
+@api_bp.route('/car/forecast/raw')
+@jwt_ex_role_required('admin')  # @jwt_required
+def get_forecast_raw():
+    resp = get_forecast(pendulum.now(tz='utc'))
     return _jsonify(resp)
 
 

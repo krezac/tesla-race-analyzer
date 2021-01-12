@@ -10,7 +10,7 @@ def calc_fn_distance(*, current_item: Dict[str, Any], initial_status, current_st
     return 123
 
 
-_calculated_laps_fields: List[CalculatedFieldDescription] = [
+_calculated_forecast_fields: List[CalculatedFieldDescription] = [
     CalculatedFieldDescription(
         name='zza_distance',
         description="Lap Distance [km]",
@@ -20,5 +20,5 @@ _calculated_laps_fields: List[CalculatedFieldDescription] = [
 ]
 
 
-def get_calculated_fields_laps():
-    return _calculated_laps_fields
+def get_calculated_fields_forecast():
+    return _calculated_forecast_fields

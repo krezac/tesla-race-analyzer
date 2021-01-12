@@ -132,28 +132,18 @@ def create_app():
 
             # populate code tables
             # label groups
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.STATUS.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.STATUS.value, title='Car Status'))
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.MAP.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.MAP.value, title='Car Status on map'))
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.TOTAL_LAP.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.TOTAL_LAP.value, title='Total Lap'))
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.CURRENT_LAP.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.CURRENT_LAP.value, title='Current Lap'))
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.PREVIOUS_LAPS.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.PREVIOUS_LAPS.value, title='Previous Laps'))
-            if not LabelGroup.query.filter_by(code=LabelFormatGroupEnum.FORECAST.value).first():
-                db.session.add(LabelGroup(code=LabelFormatGroupEnum.FORECAST.value, title='Forecast'))
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.STATUS, 'Car Status')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.MAP, 'Car Status on map')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.TOTAL_LAP, 'Total Lap')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.CURRENT_LAP, 'Current Lap')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.PREVIOUS_LAPS, 'Previous Laps')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.FORECAST, 'Forecast')
 
             # calculated field scopes
-            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.STATUS.value).first():
-                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.STATUS.value, title='Car Status'))
-            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.LAP_POINT.value).first():
-                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.LAP_POINT.value, title='Lap Point'))
-            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.LAP.value).first():
-                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.LAP.value, title='Lap'))
-            if not FieldScope.query.filter_by(code=CalculatedFieldScopeEnum.FORECAST.value).first():
-                db.session.add(FieldScope(code=CalculatedFieldScopeEnum.FORECAST.value, title='forecast'))
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.STATUS, 'Car Status')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.POSITION, 'Position')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.LAP, 'Lap')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.FORECAST, 'forecast')
 
             db.session.commit()
 

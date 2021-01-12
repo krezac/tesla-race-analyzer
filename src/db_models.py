@@ -5,6 +5,7 @@ from . import db
 from flask_security.models import fsqla_v2 as fsqla
 from sqlalchemy import UniqueConstraint
 from typing import Optional
+from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
 
 class User(db.Model, fsqla.FsUserMixin):
     pass
@@ -50,6 +51,11 @@ class LabelGroup(db.Model):
     def __repr__(self):
         return self.code
 
+    @classmethod
+    def add_if_not_exists(cls, code: LabelFormatGroupEnum, title: str):
+        if not LabelGroup.query.filter_by(code=code.value).first():
+            db.session.add(LabelGroup(code=code.value, title=title))
+
 
 class LabelFormat(db.Model):
     __tablename__ = 'label_formats'
@@ -90,6 +96,11 @@ class FieldScope(db.Model):
 
     def __repr__(self):
         return self.code
+
+    @classmethod
+    def add_if_not_exists(cls, code: CalculatedFieldScopeEnum, title: str):
+        if not FieldScope.query.filter_by(code=code.value).first():
+            db.session.add(FieldScope(code=code.value, title=title))
 
 
 class CalculatedField(db.Model):
