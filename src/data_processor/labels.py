@@ -7,24 +7,29 @@ from src.data_models import LabelConfigItem, LabelItem
 logger = logging.getLogger('app.car_data')
 
 
-def format_float_fn(raw_value: float, format_str: str) -> str:
+def format_fn_float(raw_value: float, format_str: str) -> str:
     return format_str % raw_value if format_str else str(raw_value)
 
 
-def format_period_fn(raw_value: pendulum.Period, _format_str: str) -> str:
+def format_fn_period(raw_value: pendulum.Period, _format_str: str) -> str:
     if raw_value.days:
         return f"{raw_value.days} days, {raw_value.hours:02d}:{raw_value.minutes:02d}:{raw_value.remaining_seconds:02d}"
     else:
         return f"{raw_value.hours:02d}:{raw_value.minutes:02d}:{raw_value.remaining_seconds:02d}"
 
 
-def format_period_words_fn(raw_value: pendulum.Period, _format_str: str) -> str:
+def format_fn_period_words(raw_value: pendulum.Period, _format_str: str) -> str:
     return raw_value.in_words()
 
 
-def format_datetime_fn(raw_value: pendulum.DateTime, format_str: str) -> str:
+def format_fn_datetime(raw_value: pendulum.DateTime, format_str: str) -> str:
     raw_value_tz = raw_value.in_tz('Europe/Paris')
     return raw_value_tz.format(format_str) if format_str else str(raw_value_tz)
+
+
+def format_fn_eval(raw_value: pendulum.Period, format_str: str) -> str:
+    from src import configuration
+    return str(eval(format_str, {}, {'configuration': configuration, 'raw_value': raw_value}))
 
 
 def _format_value(raw_value, config_item: LabelConfigItem):
@@ -54,3 +59,8 @@ def generate_labels(config_items: List[LabelConfigItem], data: Dict[str, Any]) -
         out.append(item)
     return out
 
+
+def get_calc_functions() -> List[str]:
+    from inspect import getmembers, isfunction
+    import sys
+    return [o for o in dir(sys.modules[__name__]) if o.startswith("format_fn_")]

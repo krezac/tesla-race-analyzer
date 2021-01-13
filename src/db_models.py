@@ -49,7 +49,7 @@ class LabelGroup(db.Model):
     #formats = db.relationship('LabelFormat', backref='label_group', lazy=True)
 
     def __repr__(self):
-        return self.code
+        return f"{self.title} ({self.code})"
 
     @classmethod
     def add_if_not_exists(cls, code: LabelFormatGroupEnum, title: str):
@@ -95,7 +95,7 @@ class FieldScope(db.Model):
     #fields = db.relationship('CalculatedField', backref='field_scope', lazy=True)
 
     def __repr__(self):
-        return self.code
+        return f"{self.title} ({self.code})"
 
     @classmethod
     def add_if_not_exists(cls, code: CalculatedFieldScopeEnum, title: str):

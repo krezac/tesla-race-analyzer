@@ -54,7 +54,7 @@ def calc_fn_time_to_end(*, current_item: Dict[str, Any], initial_status, current
 def calc_fn_lap_number(*, current_item: Dict[str, Any], initial_status, current_status, position_list,
                        lap_list, forecast, configuration: Configuration,
                        current_item_index: Optional[int]) -> Optional[float]:
-    return lap_list[-1].id if lap_list else None
+    return lap_list[-1]['id'] if lap_list else None
 
 
 _calculated_status_fields: List[CalculatedFieldDescription] = [

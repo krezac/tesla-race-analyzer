@@ -6,10 +6,9 @@
     <div>
         <form method="POST" action="{{ post_url }}">
             <div>{{ form.csrf_token }}</div>
-            <div>{{ form.field_scope.label }} {{ form.field_scope(size=20) }}</div>
-            <div>{{ form.field_name.label }} {{ form.field_name(size=20) }}</div>
-            <div>{{ form.fn_code.label }} {{ form.fn_code(size=20) }}</div>
-            <div>{{ form.return_type.label }} {{ form.return_type(size=20) }}</div>
+            <div>{{ form.field_scope.label }} {{ form.field_scope }} Scope defines the current_item meaning.</div>
+            <div>{{ form.fn_code.label }} {{ form.fn_code(cols="80", rows="5") }} Must be expression (return value)</div>
+             <div>{{ form.item_index.label }} {{ form.item_index }} Index of current item (matters for array-type data like laps). -1 means last one.</div>
             <div><input type="submit" value="Test"></div>
         </form>
     </div>

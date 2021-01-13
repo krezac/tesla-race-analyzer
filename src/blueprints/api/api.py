@@ -11,6 +11,7 @@ from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 
 from src.data_processor.data_processor import get_car_status_formatted, get_car_status, describe_status_fields, \
     get_car_positions, get_car_laps, get_forecast
+from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
 
 
 class FieldScopeApi(BaseModel):
@@ -144,9 +145,30 @@ def get_forecast_raw():
     return _jsonify(resp)
 
 
+@api_bp.route('/label_group/fields')
+def get_list_of_fields():
+    """ This is just to show available fields in test window """
+    label_group = request.args.get('label_group')
+    # TODO explicit if for total ?
+    if label_group == LabelFormatGroupEnum.STATUS.value or label_group == LabelFormatGroupEnum.MAP.value:
+        return get_status_raw()
+    elif label_group == LabelFormatGroupEnum.FORECAST:
+        return get_forecast_raw()
+    else:
+        laps = get_car_laps(pendulum.now(tz='utc'))
+        if laps:
+            lap = laps[-1].copy()
+            if 'lap_data' in lap:
+                lap['lap_data'] = {}  # we just don't want to dump
+            if 'pit_data' in lap:
+                lap['pit_data'] = {}  # we just don't want to dump
+            return _jsonify(lap)
+    return _jsonify({})
+
 ######################################
 # functions to change configurations #
 ######################################
+
 
 @api_bp.route('/config/label_groups')
 # @jwt_ex_role_required('admin')  # @jwt_required
