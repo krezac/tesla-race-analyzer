@@ -5,7 +5,7 @@ import json
 from typing import Optional, List
 from pydantic import BaseModel
 
-from src import config, db
+from src import configuration, db
 from src.db_models import LabelGroup, LabelFormat, FieldScope, CalculatedField
 from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 

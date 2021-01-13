@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for
 from flask_login import current_user
 
-from src import config
+from src import configuration
 
 from flask_jwt_extended import create_access_token
 # Blueprint Configuration
@@ -20,7 +20,10 @@ def jwt_token():
 
 @web_bp.route('/', methods=['GET'])
 def index():
-    return redirect(url_for(config.index_page))  # configurable
+    if current_user.is_active and current_user.is_authenticated and current_user.has_role('admin'):
+        return redirect(url_for(configuration.admin_index_page))
+    else:
+        return redirect(url_for(configuration.anonymous_index_page))
 
 
 @web_bp.route('/login', methods=['GET'])

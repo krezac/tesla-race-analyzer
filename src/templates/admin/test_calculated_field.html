@@ -1,0 +1,17 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  {{ super() }}
+  <div class="container">
+    <div>
+        <form method="POST" action="{{ post_url }}">
+            <div>{{ form.csrf_token }}</div>
+            <div>{{ form.field_scope.label }} {{ form.field_scope(size=20) }}</div>
+            <div>{{ form.field_name.label }} {{ form.field_name(size=20) }}</div>
+            <div>{{ form.fn_code.label }} {{ form.fn_code(size=20) }}</div>
+            <div>{{ form.return_type.label }} {{ form.return_type(size=20) }}</div>
+            <div><input type="submit" value="Test"></div>
+        </form>
+    </div>
+  </div>
+{% endblock %}

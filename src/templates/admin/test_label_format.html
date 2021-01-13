@@ -1,0 +1,23 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  {{ super() }}
+  <div class="container">
+    <div>
+        test label format
+    </div>
+    <div>
+        <form method="POST" action="{{ post_url }}">
+            <div>{{ form.csrf_token }}</div>
+            <div>{{ form.label_group.label }} {{ form.label_group(size=20) }}</div>
+            <div>{{ form.field_name.label }} {{ form.field_name(size=20) }}</div>
+            <div>{{ form.label.label }} {{ form.label(size=20) }}</div>
+            <div>{{ form.format_fn.label }} {{ form.format_fn(size=20) }}</div>
+            <div>{{ form.format.label }} {{ form.format(size=20) }}</div>
+            <div>{{ form.unit.label }} {{ form.unit(size=20) }}</div>
+            <div>{{ form.default.label }} {{ form.default(size=20) }}</div>
+            <div><input type="submit" value="Test"></div>
+        </form>
+    </div>
+  </div>
+{% endblock %}

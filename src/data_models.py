@@ -46,9 +46,10 @@ class LabelGroup(BaseModel):
     items: List[LabelItem]
 
 
-class Config(BaseModel):
+class Configuration(BaseModel):
+    anonymous_index_page: str
+    admin_index_page: str
     car_id: int
-    index_page: str
     start_latitude: float
     start_longitude: float
     start_time: pendulum.DateTime
@@ -57,17 +58,9 @@ class Config(BaseModel):
     merge_from_lap: float
     laps_merged: float
 
-    status_formatted_fields_file: Optional[str]
-    status_formatted_fields: Optional[LabelConfigDefinition]
-
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
             self.start_time = pendulum.from_timestamp(self.start_time.timestamp(), tz='utc')
-
-    def load_sub_files(self, config_dir: str):
-        if self.status_formatted_fields_file:
-            p = os.path.join(config_dir, self.status_formatted_fields_file)
-            self.status_formatted_fields = LabelConfigDefinition.parse_file(p)
 
 
 class JsonStatusResponse(BaseModel):

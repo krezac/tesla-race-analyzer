@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
 import statistics
-from src.data_models import Config
+from src.data_models import Configuration
 from src.utils import function_timer
 
 class LapSplit(BaseModel):
@@ -33,7 +33,7 @@ class LapStatus(BaseModel):
 
 
 @function_timer()
-def find_laps(configuration: Config, segment, region=10, min_time=5, start_idx=0) -> List[Dict[str, Any]]:
+def find_laps(configuration: Configuration, segment, region=10, min_time=5, start_idx=0) -> List[Dict[str, Any]]:
     """Return laps given latitude & longitude data.
 
     We assume that the first point defines the start and
@@ -140,7 +140,7 @@ def find_laps(configuration: Config, segment, region=10, min_time=5, start_idx=0
     return statuses
 
 
-def aggregate_splits(configuration: Config, splits: List[LapSplit]) -> List[LapSplit]:
+def aggregate_splits(configuration: Configuration, splits: List[LapSplit]) -> List[LapSplit]:
     agg_start = configuration.merge_from_lap
     agg_count = configuration.laps_merged
 
@@ -171,14 +171,14 @@ def aggregate_splits(configuration: Config, splits: List[LapSplit]) -> List[LapS
     return agg_splits
 
 
-def extract_lap_statuses(configuration: Config, splits: List[LapSplit], segment: List) -> List[LapStatus]:
+def extract_lap_statuses(configuration: Configuration, splits: List[LapSplit], segment: List) -> List[LapStatus]:
     out = []
     for split in splits:
         out.append(extract_lap_status(configuration, split, segment))
     return out
 
 
-def extract_lap_status(configuration: Config, split: LapSplit, segment) -> Dict[str, Any]:
+def extract_lap_status(configuration: Configuration, split: LapSplit, segment) -> Dict[str, Any]:
     """ Lap data from database:
     xx id |
     xx date           |

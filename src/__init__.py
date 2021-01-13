@@ -5,31 +5,32 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_security.models import fsqla_v2 as fsqla
-from src.data_models import Config
+from src.data_models import Configuration
 from flask_jwt_extended import JWTManager
 from flask_admin import Admin
 from flask_admin import helpers as admin_helpers
 import logging
 import sys
 
-from src.admin_views.admin_views import MyAdminView, MyAuthView, MyLogoutView, LabelFormatView, CalculatedFieldView
+from src.admin.admin_views import MyAdminView, MyAuthView, MySecurityRedirectView, LabelFormatView, CalculatedFieldView
 from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
 
 # global config (meant to be read only besides the admin doing POST case) !!!
 
-# Globally accessible libraries
-config: Config = None
 
 db = SQLAlchemy()
 jwt = JWTManager()
 admin = Admin(name='TRAn Admin', template_mode='bootstrap4')
 
+# Globally accessible libraries
+configuration: Configuration = None
+
+
 def load_config(app: Flask):
-    global config
+    global configuration
     p = path.join(app.config["CONFIG_DIR"], app.config["CONFIG_FILE"])
-    config = Config.parse_file(p)
-    config.post_process()
-    config.load_sub_files(app.config["CONFIG_DIR"])
+    configuration = Configuration.parse_file(p)
+    configuration.post_process()
 
 
 def create_app():
@@ -62,10 +63,6 @@ def create_app():
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
         security = Security(app, user_datastore, register_blueprint=True)
 
-
-
-
-
         # Import parts of our application
         from src.blueprints.api.api import api_bp
         from src.blueprints.security.routes import security_bp, flask_security_bp
@@ -81,16 +78,23 @@ def create_app():
         #admin.add_link(MenuLink(name='Login', url='/security/login', category='Login'))
         #admin.add_link(MenuLink(name='Logout', url='/security/logout', category='Login'))
 
-        admin.add_view(MyAdminView(User, db.session, category="Access"))
-        admin.add_view(MyAdminView(Role, db.session, category="Access"))
         admin.add_view(MyAdminView(Driver, db.session, category="Drivers"))
         admin.add_view(MyAdminView(DriverChange, db.session, category="Drivers"))
-        admin.add_view(MyAdminView(FieldScope, db.session, category="Fields"))
-        admin.add_view(CalculatedFieldView(CalculatedField, db.session, category="Fields"))
-        admin.add_view(MyAdminView(LabelGroup, db.session, category="Labels"))
-        admin.add_view(LabelFormatView(LabelFormat, db.session, category="Labels"))
+        admin.add_view(MyAdminView(FieldScope, db.session, category="Calculated Fields"))
+        admin.add_view(CalculatedFieldView(CalculatedField, db.session, category="Calculated Fields"))
+        admin.add_view(MyAdminView(LabelGroup, db.session, category="Formatted Labels"))
+        admin.add_view(LabelFormatView(LabelFormat, db.session, category="Formatted Labels"))
+        admin.add_view(MyAdminView(User, db.session, category="Profile"))
+        admin.add_view(MyAdminView(Role, db.session, category="Profile"))
 
-        admin.add_view(MyLogoutView(name="Logout", endpoint="logout"))
+        from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView
+
+        admin.add_view(MyTestCalculatedFieldView(name="Test custom field", endpoint="test_calculated_field", category="Calculated Fields"))
+        admin.add_view(MyTestLabelFormatTestView(name="Test custom label", endpoint="test_label_format", category="Formatted Labels"))
+
+        from flask_security import current_user
+        admin.add_view(MySecurityRedirectView(url_key='security.login', name="Login", endpoint="sec_login", category="Profile"))
+        admin.add_view(MySecurityRedirectView(url_key='security.logout', name="Logout", endpoint="sec_logout", category="Profile"))
 
 
         # Using the user_claims_loader, we can specify a method that will be

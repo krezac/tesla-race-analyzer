@@ -1,11 +1,7 @@
 import pendulum
-from typing import Dict, Any, NamedTuple, List
+from typing import Dict, Any, List
 from sqlalchemy import text
 from src.utils import function_timer
-from collections import namedtuple
-
-from src import db
-
 
 
 def _cursor_one_to_dict(resultproxy):
@@ -33,6 +29,7 @@ def _cursor_one_to_dict_list(resultproxy):
 @function_timer()
 def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = True) -> Dict[str, Any]:
     # get the full record
+    from src import db
     sql = text("""select car.name as car_name, pos.* from positions pos 
                   JOIN cars car on pos.car_id = car.id 
                   WHERE car_id = :car_id AND date < :dt  AND usable_battery_level IS NOT NULL 
@@ -53,6 +50,7 @@ def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = 
 
 @function_timer()
 def get_car_positions(car_id: int, dt: pendulum.DateTime, hours: int, update_fast_data: bool = True) -> List[Dict[str, Any]]:
+    from src import db
     # get the full records  #####   AND usable_battery_level IS NOT NULL
     sql = text("""SELECT * FROM positions 
                   WHERE car_id = :car_id AND date >= :dt AND date <= (:dt + interval ':hours hours')
