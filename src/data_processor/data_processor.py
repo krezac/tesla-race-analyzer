@@ -1,14 +1,11 @@
 import pendulum
 from typing import Dict, Any, List, Optional
-from decimal import Decimal
-from datetime import datetime
 import src.data_source.teslamate
 from src.data_processor.database_fields import get_database_fields_status
 from src.data_processor.labels import generate_labels
 from src.data_models import LabelGroup, DatabaseFieldDescription, CalculatedFieldDescription, FieldDescriptionList, \
     JsonStatusResponse, Configuration, LabelItem
 from src.utils import function_timer, function_timer_block
-from collections import namedtuple
 
 from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
 import src.data_processor.calculated_fields_status
@@ -29,25 +26,6 @@ _lap_list_raw = None
 _lap_list_formatted = None
 
 _forecast_raw = None
-
-
-def _retype_data_field(v):
-    if isinstance(v, Decimal):
-        return float(v)
-    elif isinstance(v, datetime):
-        return pendulum.from_timestamp(v.timestamp(), tz='utc')
-    return v
-
-
-def _retype_dict(d : Dict[str, Any]):
-    for k, v in d.items():
-        d[k] = _retype_data_field(v)
-
-
-@function_timer()
-def _retype_dict_list(data: List[Dict[str, Any]]):
-    for d in data:
-        _retype_dict(d)
 
 
 def _add_hardcoded_calculated_field(field_description: CalculatedFieldDescription, current_item: Dict[str, Any],
@@ -105,9 +83,7 @@ def _update_car_status():
 
     if not _initial_status_raw:
         _initial_status_raw = src.data_source.teslamate.get_car_status(configuration.car_id, configuration.start_time)
-        _retype_dict(_initial_status_raw)
     _current_status_raw = src.data_source.teslamate.get_car_status(configuration.car_id, now)
-    _retype_dict(_current_status_raw)
 
     # add hardcoded calculated fields
     calculated_fields = src.data_processor.calculated_fields_status.get_calculated_fields_status()
@@ -173,7 +149,6 @@ def _update_car_positions():
     global _forecast_raw
 
     _car_positions_raw = src.data_source.teslamate.get_car_positions(configuration.car_id, configuration.start_time, configuration.hours)
-    _retype_dict_list(_car_positions_raw)
 
     # add calculated fields
     # !! note this operation is expensive as it runs on lot of records
@@ -443,3 +418,14 @@ def test_custom_label_format(group_code: str, field: str, label: str, format_fn:
     return formatted_items
 
 
+def get_car_chargings(lap_id: int):
+    global _lap_list_raw
+
+    if not _lap_list_raw:
+        _update_car_laps()
+
+    lap = _lap_list_raw[lap_id]
+    pit_start = lap['pit_start_time']
+    pit_end = lap['pit_end_time']
+    from src import configuration  # imports global configuration
+    return src.data_source.teslamate.get_car_chargings(configuration.car_id, pit_start, pit_end)

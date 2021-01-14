@@ -45,3 +45,6 @@ def dashboard():
 def map():
     return render_template("map.html", get_status_url=url_for("api_bp.get_status"))
 
+@web_bp.route('/charts', methods=['GET'])
+def charts():
+    return render_template("charts.html")

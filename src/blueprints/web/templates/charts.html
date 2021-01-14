@@ -1,0 +1,80 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+<head>
+    <style>
+        .modal {
+          border: 1px solid black;
+          display: none;
+        }
+    </style>
+</head>
+<body>
+    <button id = 'btn' class= 'button'>
+        Data
+    </button>
+
+    <div id = "myModal" class="modal">
+        <div class="modalContent">
+            <span class = "close"> &times; </span>
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+    <script>
+        function renderChart(data) {
+            var ctx = document.getElementById("myChart").getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels, // data.labels,
+                    //labels: [
+                    //"GFA","GBA","NSA","FSR","Open Space Ratio","Sunlight Ratio","Ventilation Ratio","Stories"
+                    //],
+                    datasets: [{
+                        label: "power", // data.labels,
+                        data: data.values, // data.labels,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    }]
+                },
+            });
+        }
+
+        function getAndRender() {
+            $.ajax({
+                    // url: `http://127.0.0.1:5000/api/graph_data/lap?field=power`,
+                    url: `http://127.0.0.1:5000/api/graph_data/lap/chargings?lap=3&field=charger_power`,
+                    type: 'GET',
+                    dataType: 'json',
+                    // headers: { 'Authorization': 'Bearer {{ api_token }}' },
+            })
+            .done(function (data) {
+                    renderChart(data)
+            })
+            .fail(function () {
+                console.log("AJAX call failed")
+            });
+        }
+
+        var modal = document.getElementById("myModal");
+        var btn = document.getElementById("btn");
+        var span = document.getElementsByClassName("close")[0];
+
+        btn.onclick = function () {
+            modal.style.display = 'block'
+            getAndRender();
+        }
+
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>

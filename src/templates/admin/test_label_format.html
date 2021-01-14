@@ -37,21 +37,8 @@
                 .fail(function () {
                     $("#field_list_dump").html("--- not available ---");
                 });
-
-
-                $.ajax({
-                    success: function(resp){
-                        //for (var i = 0; i < selectOptions.length; i++){
-                            //$("#deviceAddress").append(
-                            //    $("<option></option>")
-                           //     .attr("value", selectOptions[i][0])
-                          //      .text(selectOptions[i][1])
-                         //   );
-                        //}
-                    },
-                    fai
-                });
             }
+
             $( document ).ready(function() {
                 var selectedVal = $("#label_group").val();
                 updateAvailableFields(selectedVal)
