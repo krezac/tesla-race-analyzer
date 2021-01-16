@@ -364,6 +364,7 @@ class DataProcessor(BaseModel):
         prev_lap_list = laps[-configuration.show_previous_laps - 1:-1] if len(laps) > 0 else []
 
         formatted_prev_laps = [self._format_dict(lap, LabelFormatGroupEnum.PREVIOUS_LAPS, dt) for lap in prev_lap_list]
+        formatted_prev_laps.reverse()
         formatted_recent_lap = self._format_dict(recent_lap, LabelFormatGroupEnum.RECENT_LAP, dt) if recent_lap else None
 
         return JsonLapsResponse(
