@@ -38,12 +38,18 @@ def logout():
 
 @web_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    return render_template("dashboard.html", get_status_url=url_for("api_bp.get_status"))
+    return render_template("dashboard.html", get_status_url=url_for("api_bp.get_status"), get_laps_url=url_for("api_bp.get_laps"))
 
 
 @web_bp.route('/map', methods=['GET'])
 def map():
     return render_template("map.html", get_status_url=url_for("api_bp.get_status"))
+
+
+@web_bp.route('/laps', methods=['GET'])
+def laps():
+    return render_template("laps.html", get_status_url=url_for("api_bp.get_status"), get_laps_url=url_for("api_bp.get_laps"))
+
 
 @web_bp.route('/charts', methods=['GET'])
 def charts():

@@ -1,0 +1,52 @@
+{% macro  macro_map_html(name) %}
+    <div id="{{ name }}_map_div" style="width: 100%; height: 100%;"></div>
+{% endmacro %}
+
+
+{% macro  macro_map_code(name, default_zoom, max_zoom) %}
+
+        var {{ name }}_map = L.map('{{ name }}_map_div').setView([0.0, 0.0], {{ default_zoom or 16 }});  // default if zoom not provided
+
+        var {{ name }}_geojsonMarkerOptions = {
+            radius: 8,
+            fillColor: "#FF0000",// "#28ea3f",//"#0163FF",
+            color: "#FF0000", //"#0163FF",
+            weight: 24,
+            opacity: 0.25,
+            fillOpacity: 1,
+            // className: 'marker-cluster'
+
+          };
+
+        // mapbox osm
+        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: 'pk.eyJ1Ijoibm9ydG9uc2siLCJhIjoiY2tqYmVsODgzM2I1djJ5bGd5MjMwZW9rdCJ9.SB6qH7ooIOQsb_DdyiAMAA'  // public token
+        }).addTo({{ name }}_map);
+
+        var {{ name }}_circleMarker = L.circleMarker([0, 0], {{ name }}_geojsonMarkerOptions).addTo({{ name }}_map)
+            .bindPopup("-- no data yet --").openPopup();
+{% endmacro %}
+
+{% macro  macro_map_update_function(name, latitude_var, longitude_var, status_var) %}
+    {% if latitude_var and longitude_var %}
+        {{ name }}_circleMarker.setLatLng(new L.LatLng({{ latitude_var }}, {{ longitude_var }}));
+    {% endif %}
+    {% if status_var %}
+    var {{ name }}_statusText = "";
+    if ({{ status_var }} && {{ status_var }}.items) {
+        {{ status_var }}.items.forEach(function (item, index) {
+          {{ name }}_statusText += `<b>${item.label}</b>: ${item.value}<br/>`;
+        });
+    } else {
+        {{ name }}_statusText = "-- no data --";
+    }
+    {{ name }}_circleMarker._popup.setContent({{ name }}_statusText);
+    {% else %}
+        {{ name }}_circleMarker._popup.setContent('-- no data --');
+    {% endif %}
+{% endmacro %}

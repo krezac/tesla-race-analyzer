@@ -78,6 +78,13 @@ def create_app():
         #admin.add_link(MenuLink(name='Login', url='/security/login', category='Login'))
         #admin.add_link(MenuLink(name='Logout', url='/security/logout', category='Login'))
 
+        admin.add_view(MySecurityRedirectView(url_key='web_bp.dashboard', name="Dashboard", endpoint="ui_dashboard",
+                                              category="Go to UI"))
+        admin.add_view(MySecurityRedirectView(url_key='web_bp.map', name="Map", endpoint="ui_map",
+                                              category="Go to UI"))
+        admin.add_view(MySecurityRedirectView(url_key='web_bp.laps', name="Laps", endpoint="ui_laps",
+                                              category="Go to UI"))
+
         admin.add_view(MyAdminView(Driver, db.session, category="Drivers"))
         admin.add_view(MyAdminView(DriverChange, db.session, category="Drivers"))
         admin.add_view(MyAdminView(FieldScope, db.session, category="Calculated Fields"))
@@ -89,13 +96,15 @@ def create_app():
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView
 
-        admin.add_view(MyTestCalculatedFieldView(name="Test custom field", endpoint="test_calculated_field", category="Calculated Fields"))
-        admin.add_view(MyTestLabelFormatTestView(name="Test custom label", endpoint="test_label_format", category="Formatted Labels"))
+        admin.add_view(MyTestCalculatedFieldView(name="Test custom field", endpoint="test_calculated_field",
+                                                 category="Calculated Fields"))
+        admin.add_view(MyTestLabelFormatTestView(name="Test custom label", endpoint="test_label_format",
+                                                 category="Formatted Labels"))
 
-        from flask_security import current_user
-        admin.add_view(MySecurityRedirectView(url_key='security.login', name="Login", endpoint="sec_login", category="Profile"))
-        admin.add_view(MySecurityRedirectView(url_key='security.logout', name="Logout", endpoint="sec_logout", category="Profile"))
-
+        admin.add_view(MySecurityRedirectView(url_key='security.login', name="Login", endpoint="sec_login",
+                                              category="Profile"))
+        admin.add_view(MySecurityRedirectView(url_key='security.logout', name="Logout", endpoint="sec_logout",
+                                              category="Profile"))
 
         # Using the user_claims_loader, we can specify a method that will be
         # called when creating access tokens, and add these claims to the said
@@ -138,16 +147,17 @@ def create_app():
             # label groups
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.STATUS, 'Car Status')
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.MAP, 'Car Status on map')
-            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.TOTAL_LAP, 'Total Lap')
-            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.CURRENT_LAP, 'Current Lap')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.TOTAL, 'Total')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.RECENT_LAP, 'Current Lap')
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.PREVIOUS_LAPS, 'Previous Laps')
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.FORECAST, 'Forecast')
 
             # calculated field scopes
-            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.STATUS, 'Car Status')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.STATUS, 'Status')
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.POSITION, 'Position')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.TOTAL, 'Total')
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.LAP, 'Lap')
-            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.FORECAST, 'forecast')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.FORECAST, 'Forecast')
 
             db.session.commit()
 

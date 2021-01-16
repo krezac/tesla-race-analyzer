@@ -185,7 +185,7 @@
                             car_status = data
                             circleMarker.setLatLng(new L.LatLng(car_status.lat, car_status.lon));
                             circleMarker._popup.setContent(getStatusText(car_status.mapLabels))
-                            $("#status_text").html(getStatusText(car_status.textLabels));
+                            $("#status_text").html(getStatusText(car_status.statusLabels));
                             $("#forecast_text").html(getStatusText(car_status.forecastLabels));
                          })
                          .fail(function () {
@@ -230,6 +230,6 @@
 </script>
 
 <hr/>
-Source code available at <a href="https://github.com/krezac/tesla-data-source" target="_blank">https://github.com/krezac/tesla-data-source</a>
+Source code available at <a href="https://github.com/krezac/tesla-race-analyzer" target="_blank">https://github.com/krezac/tesla-race-analyzer</a>
 </body>
 </html>

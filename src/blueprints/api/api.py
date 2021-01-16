@@ -9,8 +9,7 @@ from src import configuration, db
 from src.db_models import LabelGroup, LabelFormat, FieldScope, CalculatedField
 from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 
-from src.data_processor.data_processor import get_car_status_formatted, get_car_status, describe_status_fields, \
-    get_car_positions, get_car_laps, get_forecast, get_car_chargings
+from src.data_processor.data_processor import data_processor
 from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
 
 
@@ -97,15 +96,21 @@ def _jsonify(data):
 
 @api_bp.route('/car/status')
 def get_status():
-    resp = get_car_status_formatted(pendulum.now(tz='utc'))
+    resp = data_processor.get_status_formatted()
+    return Response(resp.json(), mimetype='application/json')
+
+@api_bp.route('/car/laps')
+def get_laps():
+    resp = data_processor.get_laps_formatted()
     return Response(resp.json(), mimetype='application/json')
 
 
-@api_bp.route('/car/status/fields')
-def get_status_fields():
-    resp = describe_status_fields()
-    return Response(resp.json(), mimetype='application/json')
-
+# not needed any more
+# @api_bp.route('/car/status/fields')
+# def get_status_fields():
+#     resp = describe_status_fields()
+#     return Response(resp.json(), mimetype='application/json')
+#
 
 
 @api_bp.route('/version')
@@ -120,28 +125,35 @@ def version():
 @api_bp.route('/car/status/raw')
 @jwt_ex_role_required('admin')  # @jwt_required
 def get_status_raw():
-    resp = get_car_status(pendulum.now(tz='utc'))
+    resp = data_processor.get_status_raw()
     return _jsonify(resp)
 
 
 @api_bp.route('/car/positions/raw')
 @jwt_ex_role_required('admin')  # @jwt_required
 def get_positions_raw():
-    resp = get_car_positions(pendulum.now(tz='utc'))
+    resp = data_processor.get_positions_raw()
     return _jsonify(resp)
 
 
 @api_bp.route('/car/laps/raw')
 @jwt_ex_role_required('admin')  # @jwt_required
 def get_laps_raw():
-    resp = get_car_laps(pendulum.now(tz='utc'))
+    resp = data_processor.get_laps_raw()
+    return _jsonify(resp)
+
+
+@api_bp.route('/car/total/raw')
+@jwt_ex_role_required('admin')  # @jwt_required
+def get_total_raw():
+    resp = data_processor.get_total_raw()
     return _jsonify(resp)
 
 
 @api_bp.route('/car/forecast/raw')
 @jwt_ex_role_required('admin')  # @jwt_required
 def get_forecast_raw():
-    resp = get_forecast(pendulum.now(tz='utc'))
+    resp = data_processor.get_forecast_raw()
     return _jsonify(resp)
 
 
@@ -155,7 +167,7 @@ def get_list_of_fields():
     elif label_group == LabelFormatGroupEnum.FORECAST:
         return get_forecast_raw()
     else:
-        laps = get_car_laps(pendulum.now(tz='utc'))
+        laps = data_processor.get_laps_raw()
         if laps:
             lap = laps[-1].copy()
             if 'lap_data' in lap:
@@ -171,7 +183,7 @@ def get_graph_data_lap():
     lap_id = request.args.get('lap')
     field = request.args.get('field')
 
-    laps = get_car_laps(pendulum.now(tz='utc'))
+    laps = data_processor.get_laps_raw()
     lap = laps[int(lap_id) if lap_id else -1]
     lap_data = lap['lap_data']
     graph_periods = [pendulum.Period(lap_data[0]['date'], item['date']) for item in lap_data]
@@ -185,10 +197,10 @@ def get_graph_charging_lap_data():
     lap_id = request.args.get('lap')
     field = request.args.get('field')
 
-    laps = get_car_laps(pendulum.now(tz='utc'))
+    laps = data_processor.get_laps_raw()
     lap = laps[int(lap_id) if lap_id else -1]
     lap_data = lap['lap_data']
-    lap_chargings = get_car_chargings(int(lap_id))
+    lap_chargings = data_processor.get_car_chargings(int(lap_id))
     charges = lap_chargings[0]['charges']
 
     graph_periods = [pendulum.Period(charges[0]['date'], charge['date']) for charge in charges]

@@ -1,6 +1,8 @@
-from typing import Optional, Dict, List, Any
+from typing import Optional, List, Dict, Any
 import pendulum
+
 from src.data_models import CalculatedFieldDescription
+from geopy.distance import distance as geopy_distance
 from src.data_models import Configuration
 
 
@@ -29,4 +31,12 @@ def add_calculated_fields(*,
     :param now_dt: time to calculate data for.
     :return:
     """
-    current_item['distance'] = position_list[-1]['odometer'] - position_list[0]['odometer'] if position_list else None  # TODO remove, just for testing
+    # because of amount of data don't add anything unless necessary
+
+    # current_item['distance_start'] = geopy_distance(
+    #     (configuration.start_latitude, configuration.start_longitude),
+    #     (position_list[current_item_index]['latitude'], position_list[current_item_index]['longitude'])
+    #     ).km if position_list[current_item_index]['latitude'] is not None \
+    #     and position_list[current_item_index]['longitude'] is not None else None
+
+    pass

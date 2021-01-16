@@ -5,7 +5,7 @@ from flask_security import current_user
 from flask_jwt_extended import create_access_token
 
 from src.admin.admin_forms import TestLabelFormatForm, TestCalculatedFieldForm
-from src.data_processor.data_processor import test_custom_calculated_field, test_custom_label_format
+from src.data_processor.data_processor import data_processor
 
 
 # Create customized model view class for admin users
@@ -60,7 +60,7 @@ class MyTestCalculatedFieldView(MyAdminCustomView):
         form.field_scope.choices = [(g.code, g) for g in FieldScope.query.all()]
         if form.validate_on_submit():
             try:
-                return_value = test_custom_calculated_field('__test_field__', form.field_scope.data, form.fn_code.data, "")  # TODO the return type is not needed for now
+                return_value = data_processor.test_custom_calculated_field('__test_field__', form.field_scope.data, form.fn_code.data, "")  # TODO the return type is not needed for now
                 flash(Markup(f"Return value is <b>{return_value['__test_field__']}</b>"), "info")
             except Exception as ex:
                 flash(f"{type(ex).__name__}: {ex}", "error")
@@ -77,7 +77,7 @@ class MyTestLabelFormatTestView(MyAdminCustomView):
         form.format_fn.choices = get_calc_functions()
         if form.validate_on_submit():
             try:
-                return_value = test_custom_label_format(form.label_group.data, form.field_name.data,
+                return_value = data_processor.test_custom_label_format(form.label_group.data, form.field_name.data,
                                                         '__test_label__', form.format_fn.data,
                                                         form.format.data, form.unit.data, form.default.data
                                                         )

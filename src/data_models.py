@@ -19,33 +19,6 @@ class FieldDescriptionList(BaseModel):
     items: List[DatabaseFieldDescription]
 
 
-class LabelConfigItem(BaseModel):
-    """ label definition (source, format...)"""
-    field: str
-    label: str
-    format: Optional[str]
-    format_function: Optional[str]
-    unit: Optional[str]
-    default: Optional[str]
-
-
-class LabelConfigDefinition(BaseModel):
-    title: Optional[str]
-    items: List[LabelConfigItem]
-
-
-class LabelItem(BaseModel):
-    """formatted label"""
-    label: str
-    value: Optional[str]
-
-
-class LabelGroup(BaseModel):
-    """group of labels with totle"""
-    title: Optional[str]
-    items: List[LabelItem]
-
-
 class Configuration(BaseModel):
     anonymous_index_page: str
     admin_index_page: str
@@ -57,15 +30,39 @@ class Configuration(BaseModel):
     start_radius: float
     merge_from_lap: float
     laps_merged: float
+    show_previous_laps: int
 
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
             self.start_time = pendulum.from_timestamp(self.start_time.timestamp(), tz='utc')
 
 
+#####################################
+# structures for AJAX API endpoints #
+#####################################
+
+class JsonLabelItem(BaseModel):
+    """formatted label"""
+    label: str
+    value: Optional[str]
+
+
+class JsonLabelGroup(BaseModel):
+    """group of labels with title"""
+    title: Optional[str]
+    items: List[JsonLabelItem]
+
+
 class JsonStatusResponse(BaseModel):
     lat: float
     lon: float
-    mapLabels: LabelGroup
-    textLabels: LabelGroup
-    forecastLabels: LabelGroup
+    mapLabels: JsonLabelGroup
+    statusLabels: JsonLabelGroup
+    totalLabels: JsonLabelGroup
+    forecastLabels: JsonLabelGroup
+
+
+class JsonLapsResponse(BaseModel):
+    # TODO migrate total to separate structure total: JsonLabelGroup
+    previous: List[JsonLabelGroup]
+    recent: JsonLabelGroup

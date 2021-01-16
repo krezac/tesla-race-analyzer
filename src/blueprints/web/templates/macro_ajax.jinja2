@@ -1,0 +1,31 @@
+{% macro  macro_ajax_call(name, endpoint, period_ms, retries, on_success_fn, on_fail_fn) %}
+var {{ name }}_ajax_delay = {{ period_ms }};
+var {{ name }}_ajax_retries = {{ retries }};
+(function {{ name }}_ajax_worker() {
+  $.ajax({
+    url: '{{ endpoint }}',
+    dataType: 'json',
+  })
+  .done(function(data) {
+      {{ on_success_fn }}(data);
+      if ({{ name }}_ajax_delay > {{ period_ms }}) {
+        console.log("{{ name }}: Conectivity restored");
+      }
+      {{ name }}_ajax_delay = {{ period_ms }};
+      {{ name }}_ajax_retries = {{ retries }};
+    })
+  .fail(function() {
+      {{ on_fail_fn }}();
+      if ({{ name }}_ajax_retries-- > 0) {
+        console.log("{{ name }}: Connectivity failure, retries remaining: " + {{ name }}_ajax_retries);
+        {{ name }}_ajax_delay = {{ period_ms }};
+      } else {
+        {{ name }}_ajax_delay *= 2;
+        console.log("{{ name }}: Connectivity failure, exponential backoff, delay is now " + {{ name }}_ajax_delay + "ms");
+      }
+    })
+  .always(function() {
+      setTimeout({{ name }}_ajax_worker, {{ name }}_ajax_delay);
+    });
+})();
+{% endmacro %}

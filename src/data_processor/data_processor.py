@@ -1,56 +1,96 @@
 import pendulum
 from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
 import src.data_source.teslamate
-from src.data_processor.database_fields import get_database_fields_status
 from src.data_processor.labels import generate_labels
-from src.data_models import LabelGroup, DatabaseFieldDescription, CalculatedFieldDescription, FieldDescriptionList, \
-    JsonStatusResponse, Configuration, LabelItem
-from src.utils import function_timer, function_timer_block
+from src.data_models import Configuration, JsonLabelItem, JsonLabelGroup, JsonStatusResponse, JsonLapsResponse
+from src.utils import function_timer
 
 from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
-import src.data_processor.calculated_fields_status
-import src.data_processor.calculated_fields_position
+import src.data_processor.calculated_fields_positions
 import src.data_processor.calculated_fields_laps
 import src.data_processor.calculated_fields_forecast
 from src.data_processor import lap_analyzer
 
-# TODO add background loading
-_initial_status_raw = None
 
-_current_status_raw = None
-_current_status_formatted = None
+class DataProcessor(BaseModel):
+    """ just wrapper around cached data"""
+    initial_status_raw: Optional[Dict[str, Any]]
 
-_car_positions_raw = None
+    current_status_raw: Optional[Dict[str, Any]]
+    current_status_formatted: Optional[JsonStatusResponse]
 
-_lap_list_raw = None
-_lap_list_formatted = None
+    car_positions_raw: Optional[List[Dict[str, Any]]]
 
-_forecast_raw = None
+    lap_list_raw: Optional[List[Dict[str, Any]]]
+    laps_formatted: Optional[JsonLapsResponse]
 
+    total_raw: Optional[Dict[str, Any]]
+    total_formatted: Optional[JsonLabelGroup]
 
-def _add_hardcoded_calculated_field(field_description: CalculatedFieldDescription, current_item: Dict[str, Any],
-                                    function_package, *,
-                                    initial_status, current_status, position_list, lap_list, forecast,
-                                    configuration: Configuration,
-                                    current_item_index: Optional[int]):
-    name = field_description.name
-    fn = getattr(function_package, field_description.calc_fn)  # get calculate function
-    value = fn(current_item=current_item,
-               initial_status=initial_status,
-               current_status=current_status,
-               position_list=position_list,
-               lap_list=lap_list,
-               forecast=forecast,
-               configuration=configuration,
-               current_item_index=current_item_index,
-               )  # calculate new value
-    current_item[name] = value
+    forecast_raw: Optional[Dict[str, Any]]
+    forecast_formatted: Optional[JsonLabelGroup]
 
+    ################
+    # data loaders #
+    ################
 
-def _add_user_defined_calculated_field(field_description: CalculatedFieldDescription, current_item: Dict[str, Any], *,
-                                       initial_status, current_status, position_list, lap_list, forecast,
-                                       configuration: Configuration,
-                                       current_item_index: Optional[int]):
+    @function_timer()
+    def _update_initial_status(self, car_id: int, start_time: pendulum.DateTime):
+        """
+        Load initial status
+        Not meant to be called from outside
+        :param car_id:  car id to load status for.
+        :param start_time:  time to retrieve the status for.
+        :return: retrieved data
+        """
+        if not self.initial_status_raw:
+            self.initial_status_raw = src.data_source.teslamate.get_car_status(car_id, start_time)
+
+    @function_timer()
+    def _load_status_raw(self, car_id: int, dt: pendulum.DateTime):
+        from src import configuration
+        self._update_initial_status(car_id, configuration.start_time)  # make sure there is initial status loaded
+        # update status by calculated fields
+        status = src.data_source.teslamate.get_car_status(car_id, dt)
+        return self._enhance_status(status, dt)
+
+    @function_timer()
+    def _load_positions(self, car_id: int, dt_start: pendulum.DateTime, hours: int, dt: pendulum.DateTime) \
+            -> List[Dict[str, Any]]:
+        positions = src.data_source.teslamate.get_car_positions(car_id, dt_start, hours)
+        return self._enhance_positions(positions, dt)
+
+    @function_timer()
+    def _load_laps(self, positions, configuration, dt: pendulum.DateTime):
+        # TODO convert to finder
+        laps = lap_analyzer.find_laps(configuration, positions, configuration.start_radius, 0, 0)
+        laps = self._enhance_laps(laps, dt)
+        return laps
+
+    #####################################
+    # enhancers - add calculated fields #
+    #####################################
+
+    @classmethod
+    def _add_user_defined_calculated_field(cls, field_description, current_item: Dict[str, Any], *,
+                                           initial_status, current_status, position_list, lap_list, forecast,
+                                           configuration: Configuration,
+                                           current_item_index: Optional[int], now_dt: pendulum.DateTime):
+        """
+        Add database defined calculated fields to current_item  (helper, not to be called directly)
+        :param field_description: this is of type CalculatedField. I don't want to import because of DB dependency
+        :param current_item:
+        :param initial_status:
+        :param current_status:
+        :param position_list:
+        :param lap_list:
+        :param forecast:
+        :param configuration:
+        :param current_item_index:
+        :param now_dt:
+        :return:
+        """
         name = field_description.name
         code = field_description.calc_fn
         value = eval(code, {}, {
@@ -62,370 +102,450 @@ def _add_user_defined_calculated_field(field_description: CalculatedFieldDescrip
             'forecast': forecast,
             'configuration': configuration,
             'current_item_index': current_item_index,
+            'now_dt': now_dt
         })  # calculate new value
         current_item[name] = value
 
+    @function_timer()
+    def _enhance_status(self, status: Dict[str, Any], dt: pendulum.DateTime) -> Dict[str, Any]:
+        """
+        Add calculated fields to the status
+        :param status:  data to enhance
+        :return: the enhanced version (note it does in place enhancements, changes the parameter)
+        """
+        from src import configuration
+        # add hardcoded calculated fields
+        from src.data_processor.calculated_fields_status import add_calculated_fields
+        add_calculated_fields(current_item=status,
+                              initial_status=self.initial_status_raw,
+                              current_status=status,
+                              position_list=self.car_positions_raw,
+                              lap_list=self.lap_list_raw,
+                              forecast=self.forecast_raw,
+                              configuration=configuration,
+                              current_item_index=None,
+                              now_dt=dt
+                              )
 
-@function_timer()
-def _update_car_status():
-    from src.db_models import LabelFormat, CalculatedField
-    from src import configuration  # imports global configuration
+        # add user-defined (db) calculated fields
+        from src.db_models import CalculatedField
+        db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.STATUS.value)
+        for db_calculated_field in db_calculated_fields:
+            self._add_user_defined_calculated_field(db_calculated_field, status,
+                                                    initial_status=self.initial_status_raw,
+                                                    current_status=status,
+                                                    position_list=self.car_positions_raw,
+                                                    lap_list=self.lap_list_raw,
+                                                    forecast=self.forecast_raw,
+                                                    configuration=configuration,
+                                                    current_item_index=None,
+                                                    now_dt=dt
+                                                    )
+            return status
 
-    global _initial_status_raw
-    global _initial_status_formatted
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
+    @function_timer()
+    def _enhance_positions(self, positions: List[Dict[str, Any]], dt: pendulum.DateTime) -> List[Dict[str, Any]]:
+        # add calculated fields
+        # !! note this operation is expensive as it runs on lot of records
 
-    now = pendulum.now(tz='utc')
+        from src.data_processor.calculated_fields_positions import add_calculated_fields
+        from src import configuration
+        from src.db_models import CalculatedField
+        db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.POSITION.value)
+        for i in range(len(positions)):
+            add_calculated_fields(current_item=positions[i],
+                                  initial_status=self.initial_status_raw,
+                                  current_status=self.current_status_raw,
+                                  position_list=positions,
+                                  lap_list=self.lap_list_raw,
+                                  forecast=self.forecast_raw,
+                                  configuration=configuration,
+                                  current_item_index=i,
+                                  now_dt=dt
+                                  )
+            for field_description in db_calculated_fields:
+                self._add_user_defined_calculated_field(field_description, positions[i],
+                                                        initial_status=self.initial_status_raw,
+                                                        current_status=self.current_status_raw,
+                                                        position_list=positions,
+                                                        lap_list=self.lap_list_raw,
+                                                        forecast=self.forecast_raw,
+                                                        configuration=configuration,
+                                                        current_item_index=i,
+                                                        now_dt=dt,
+                                                        )
+        return positions
 
-    if not _initial_status_raw:
-        _initial_status_raw = src.data_source.teslamate.get_car_status(configuration.car_id, configuration.start_time)
-    _current_status_raw = src.data_source.teslamate.get_car_status(configuration.car_id, now)
+    @function_timer()
+    def _enhance_laps(self, laps: List[Dict[str, Any]], dt: pendulum.DateTime) -> List[Dict[str, Any]]:
 
-    # add hardcoded calculated fields
-    calculated_fields = src.data_processor.calculated_fields_status.get_calculated_fields_status()
-    for field_description in calculated_fields:
-        _add_hardcoded_calculated_field(field_description, _current_status_raw,
-                                        src.data_processor.calculated_fields_status,
-                                        initial_status=_initial_status_raw,
-                                        current_status=_current_status_raw,
-                                        position_list=_car_positions_raw,
-                                        lap_list=_lap_list_raw,
-                                        forecast=_forecast_raw,
-                                        configuration=configuration,
-                                        current_item_index=None,
-                                        )
+        from src.data_processor.calculated_fields_laps import add_calculated_fields
+        from src import configuration
+        from src.db_models import CalculatedField
+        db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.POSITION.value)
+        for i in range(len(laps)):
+            add_calculated_fields(current_item=laps[i],
+                                  initial_status=self.initial_status_raw,
+                                  current_status=self.current_status_raw,
+                                  position_list=self.car_positions_raw,
+                                  lap_list=laps,
+                                  forecast=self.forecast_raw,
+                                  configuration=configuration,
+                                  current_item_index=i,
+                                  now_dt=dt
+                                  )
+            for field_description in db_calculated_fields:
+                self._add_user_defined_calculated_field(field_description, laps[i],
+                                                        initial_status=self.initial_status_raw,
+                                                        current_status=self.current_status_raw,
+                                                        position_list=self.car_positions_raw,
+                                                        lap_list=laps,
+                                                        forecast=self.forecast_raw,
+                                                        configuration=configuration,
+                                                        current_item_index=i,
+                                                        now_dt=dt,
+                                                        )
+        return laps
 
-    # add user-defined (db) calculated fields
-    db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.STATUS.value)
-    for field_description in db_calculated_fields:
-        _add_user_defined_calculated_field(field_description, _current_status_raw,
-                                           initial_status=_initial_status_raw,
-                                           current_status=_current_status_raw,
-                                           position_list=_car_positions_raw,
-                                           lap_list=_lap_list_raw,
-                                           forecast=_forecast_raw,
-                                           configuration=configuration,
-                                           current_item_index=None,
-                                           )
+    @function_timer()
+    def _enhance_total(self, total: Dict[str, Any], dt: pendulum.DateTime) -> Dict[str, Any]:
+        """
+        Add calculated fields for total
+        :param total: data to enhance
+        :return: the enhanced version (note it does in place enhancements, changes the parameter)
+        """
+        from src import configuration
+        # add hardcoded calculated fields
+        from src.data_processor.calculated_fields_total import add_calculated_fields
+        add_calculated_fields(current_item=total,
+                              initial_status=self.initial_status_raw,
+                              current_status=self.initial_status_raw,
+                              position_list=self.car_positions_raw,
+                              lap_list=self.lap_list_raw,
+                              forecast=self.forecast_raw,
+                              configuration=configuration,
+                              current_item_index=None,
+                              now_dt=dt
+                              )
 
-    # now generate the formatted one
-    formatted_map_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.MAP.value),
-                                      _current_status_raw)
+        # add user-defined (db) calculated fields
+        from src.db_models import CalculatedField
+        db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.TOTAL.value)
+        for db_calculated_field in db_calculated_fields:
+            self._add_user_defined_calculated_field(db_calculated_field, total,
+                                                    initial_status=self.initial_status_raw,
+                                                    current_status=self.current_status_raw,
+                                                    position_list=self.car_positions_raw,
+                                                    lap_list=self.lap_list_raw,
+                                                    forecast=self.forecast_raw,
+                                                    configuration=configuration,
+                                                    current_item_index=None,
+                                                    now_dt=dt
+                                                    )
+        return total
 
-    formatted_status_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.STATUS.value),
-                                      _current_status_raw)
+    @function_timer()
+    def _enhance_forecast(self, forecast: Dict[str, Any], dt: pendulum.DateTime) -> Dict[str, Any]:
+        """
+        Add calculated fields for forecast
+        :param forecast:
+        :return: the enhanced version (note it does in place enhancements, changes the parameter)
+        """
+        from src import configuration
+        # add hardcoded calculated fields
+        from src.data_processor.calculated_fields_total import add_calculated_fields
+        add_calculated_fields(current_item=forecast,
+                              initial_status=self.initial_status_raw,
+                              current_status=self.initial_status_raw,
+                              position_list=self.car_positions_raw,
+                              lap_list=self.lap_list_raw,
+                              forecast=self.forecast_raw,
+                              configuration=configuration,
+                              current_item_index=None,
+                              now_dt=dt
+                              )
 
-    formatted_forecast_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.FORECAST.value),
-                                      _current_status_raw)
+        # add user-defined (db) calculated fields
+        from src.db_models import CalculatedField
+        db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.FORECAST.value)
+        for db_calculated_field in db_calculated_fields:
+            self._add_user_defined_calculated_field(db_calculated_field, forecast,
+                                                    initial_status=self.initial_status_raw,
+                                                    current_status=self.current_status_raw,
+                                                    position_list=self.car_positions_raw,
+                                                    lap_list=self.lap_list_raw,
+                                                    forecast=self.forecast_raw,
+                                                    configuration=configuration,
+                                                    current_item_index=None,
+                                                    now_dt=dt
+                                                    )
+        return forecast
 
-    db_label_group_map = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.MAP.value).first()
-    db_label_group_status = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.STATUS.value).first()
-    db_label_group_forecast = src.db_models.LabelGroup.query.filter_by(code=LabelFormatGroupEnum.FORECAST.value).first()
+    ##############
+    # formatters #
+    ##############
 
-    _current_status_formatted = JsonStatusResponse(
-        lat=_current_status_raw['latitude'],
-        lon=_current_status_raw['longitude'],
-        mapLabels=LabelGroup(title=db_label_group_map.title, items=formatted_map_items),
-        textLabels=LabelGroup(title=db_label_group_status.title, items=formatted_status_items),
-        forecastLabels=LabelGroup(title=db_label_group_forecast.title, items=formatted_forecast_items))
+    @classmethod
+    def _format_dict(cls, d: Dict[str, Any], label_group: LabelFormatGroupEnum,
+                             dt: Optional[pendulum.DateTime]) -> JsonLabelGroup:
+        """
+        Generic function to format dict into group of labels
+        :param d: data to be formatted
+        :param label_group: group of labels/title
+        :param dt:
+        :return: formatted structure
+        """
+        from src.db_models import LabelGroup, LabelFormat
+        from src.data_processor.labels import generate_labels
 
+        db_label_group: LabelGroup = src.db_models.LabelGroup.query.filter_by(code=label_group.value).first()
+        formatted_items: List[JsonLabelItem] = generate_labels(LabelFormat.get_all_by_group(label_group.value),
+                                                               d, dt)
+        return JsonLabelGroup(title=db_label_group.title, items=formatted_items)
 
+    def _load_status_formatted(self, status: Dict[str, Any], dt: Optional[pendulum.DateTime]) -> JsonStatusResponse:
+        return JsonStatusResponse(
+            lat=status['latitude'],
+            lon=status['longitude'],
+            mapLabels=self._format_dict(status, LabelFormatGroupEnum.MAP, dt),
+            statusLabels=self._format_dict(status, LabelFormatGroupEnum.STATUS, dt),
+            totalLabels = self._format_dict(self.total_raw, LabelFormatGroupEnum.TOTAL, dt),  # TODO partial hack
+            forecastLabels=self._format_dict(status, LabelFormatGroupEnum.FORECAST, dt),
+        )
 
-@function_timer()
-def _update_car_positions():
-    from src.db_models import LabelFormat, CalculatedField
-    from src import configuration  # imports global configuration
+    def _load_laps_formatted(self, laps: List[Dict[str, Any]], dt: Optional[pendulum.DateTime]) -> JsonLapsResponse:
+        from src import configuration
+        recent_lap = self.lap_list_raw[-1] if self.lap_list_raw else None
+        prev_lap_list = self.lap_list_raw[-configuration.show_previous_laps - 1:-1] if len(self.lap_list_raw) > 0 else []
 
-    global _initial_status_raw
-    global _initial_status_formatted
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
+        formatted_prev_laps = [self._format_dict(lap, LabelFormatGroupEnum.PREVIOUS_LAPS, dt) for lap in prev_lap_list]
+        formatted_recent_lap = self._format_dict(recent_lap, LabelFormatGroupEnum.RECENT_LAP, dt) if recent_lap else None
 
-    _car_positions_raw = src.data_source.teslamate.get_car_positions(configuration.car_id, configuration.start_time, configuration.hours)
+        return JsonLapsResponse(
+            previous=formatted_prev_laps,
+            recent=formatted_recent_lap
+        )
 
-    # add calculated fields
-    # !! note this operation is expensive as it runs on lot of records
-    hardcoded_calculated_fields = src.data_processor.calculated_fields_position.get_calculated_fields_position()
-    db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.POSITION.value)
-    for pt in range(len(_car_positions_raw)):
-        for field_description in hardcoded_calculated_fields:
-            _add_hardcoded_calculated_field(field_description, _car_positions_raw[pt],
-                                            src.data_processor.calculated_fields_position,
-                                            initial_status=_initial_status_raw,
-                                            current_status=_current_status_raw,
-                                            position_list=_car_positions_raw,
-                                            lap_list=_lap_list_raw,
-                                            forecast=_forecast_raw,
-                                            configuration=configuration,
-                                            current_item_index=pt,
-                                            )
-        for field_description in db_calculated_fields:
-            _add_user_defined_calculated_field(field_description, _car_positions_raw[pt],
-                                               initial_status=_initial_status_raw,
-                                               current_status=_current_status_raw,
-                                               position_list=_car_positions_raw,
-                                               lap_list=_lap_list_raw,
-                                               forecast=_forecast_raw,
-                                               configuration=configuration,
-                                               current_item_index=None,
-                                               )
+    #################################################
+    # update calls (to be used from background jobs #
+    #################################################
 
-    # now split to laps
+    @function_timer()
+    def update_status(self):
+        """
+        update current status. May be called from background job
+        """
+        from src import configuration
+        car_id = configuration.car_id
+        now = pendulum.now(tz='utc')
+        status = self._load_status_raw(car_id, now)
+        self.current_status_raw = status
+        self.current_status_formatted = self._load_status_formatted(self.current_status_raw, now)
 
+    @function_timer()
+    def update_positions_laps_forecast(self):
+        """
+        update rest of the data (besides status. May be called from background job
+        """
+        from src import configuration
+        now = pendulum.now(tz='utc')
+        positions = self._load_positions(configuration.car_id, configuration.start_time, configuration.hours, now)
+        self.car_positions_raw = positions
+        # no formatting for positions
 
-@function_timer()
-def _update_car_laps():
-    from src.db_models import LabelFormat, CalculatedField
-    from src import configuration  # imports global configuration
+        # find and update laps
+        self.lap_list_raw = self._load_laps(positions, configuration, now)
+        self.laps_formatted = self._load_laps_formatted(self.lap_list_raw, now)
 
-    global _initial_status_raw
-    global _initial_status_formatted
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
+        # load total
+        total = {}
+        self.total_raw = self._enhance_total(total, now)
+        self.total_formatted = self._format_dict(self.total_raw, LabelFormatGroupEnum.TOTAL, now)
 
-    if not _car_positions_raw:
-        _update_car_positions()
+        # load forecast
+        forecast = {}
+        self.forecast_raw = self._enhance_forecast(forecast, now)
+        self.forecast_formatted = self._format_dict(self.forecast_raw, LabelFormatGroupEnum.FORECAST, now)
 
-    _lap_list_raw = lap_analyzer.find_laps(configuration, _car_positions_raw, configuration.start_radius, 0, 0)
+    ###########
+    # getters #
+    ###########
 
-    # add calculated fields
-    hardcoded_calculated_fields = src.data_processor.calculated_fields_laps.get_calculated_fields_laps()
-    db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.LAP.value)
+    def get_status_raw(self) -> Dict[str, Any]:
+        """
+        get current status raw
+        :return: retrieved data
+        """
+        if not self.current_status_raw:
+            self.update_status()
+        return self.current_status_raw
 
-
-    for idx in range(len(_lap_list_raw)):
-        for field_description in hardcoded_calculated_fields:
-            _add_hardcoded_calculated_field(field_description, _lap_list_raw[idx],
-                                            src.data_processor.calculated_fields_laps,
-                                            initial_status=_initial_status_raw,
-                                            current_status=_current_status_raw,
-                                            position_list=_car_positions_raw,
-                                            lap_list=_lap_list_raw,
-                                            forecast=_forecast_raw,
-                                            configuration=configuration,
-                                            current_item_index=idx,
-                                            )
-        for field_description in db_calculated_fields:
-            _add_user_defined_calculated_field(field_description, _lap_list_raw[idx],
-                                               initial_status=_initial_status_raw,
-                                               current_status=_current_status_raw,
-                                               position_list=_car_positions_raw,
-                                               lap_list=_lap_list_raw,
-                                               forecast=_forecast_raw,
-                                               configuration=configuration,
-                                               current_item_index=None,
-                                               )
-
-
-@function_timer()
-def _update_forecast():
-    from src.db_models import LabelFormat, CalculatedField
-    from src import configuration  # imports global configuration
-
-    global _initial_status_raw
-    global _initial_status_formatted
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
-
-    forecast = {}
-
-    # add hardcoded calculated fields
-    calculated_fields = src.data_processor.calculated_fields_forecast.get_calculated_fields_forecast()
-    for field_description in calculated_fields:
-        _add_hardcoded_calculated_field(field_description, forecast,
-                                        src.data_processor.calculated_fields_status,
-                                        initial_status=_initial_status_raw,
-                                        current_status=_current_status_raw,
-                                        position_list=_car_positions_raw,
-                                        lap_list=_lap_list_raw,
-                                        forecast=_forecast_raw,
-                                        configuration=configuration,
-                                        current_item_index=None,
-                                        )
-
-    # add user-defined (db) calculated fields
-    db_calculated_fields = CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.FORECAST.value)
-    for field_description in db_calculated_fields:
-        _add_user_defined_calculated_field(field_description, forecast,
-                                           initial_status=_initial_status_raw,
-                                           current_status=_current_status_raw,
-                                           position_list=_car_positions_raw,
-                                           lap_list=_lap_list_raw,
-                                           forecast=_forecast_raw,
-                                           configuration=configuration,
-                                           current_item_index=None,
-                                           )
-
-    _forecast_raw = forecast  # publish once ready
-
-    # # now generate the formatted one
-    # formatted_items = generate_labels(LabelFormat.get_all_by_group(LabelFormatGroupEnum.FORECAST.value),
-    #                                   _forecast_raw)
-    # _current_status_formatted = LabelGroup(title=config.status_formatted_fields.title, items=formatted_items)
-
-
-def get_car_status(dt: pendulum.DateTime) -> Dict[str, Any]:
-    global _current_status_raw
-
-    # TODO for the development time, update on every try if not _current_status_raw:
-    _update_car_status()
-
-    return _current_status_raw
-
-
-def get_car_positions(dt: pendulum.DateTime) -> Dict[str, Any]:
-    global _car_positions_raw
-
-    # TODO for the development time, update on every try if not _car_positions_raw:
-    _update_car_positions()
-
-    return _car_positions_raw
-
-
-def get_car_laps(dt: pendulum.DateTime) -> Dict[str, Any]:
-    global _lap_list_raw
-
-    # TODO for the development time, update on every try if not _lap_list_raw:
-    _update_car_laps()
-
-    return _lap_list_raw
-
-
-def get_forecast(dt: pendulum.DateTime) -> Dict[str, Any]:
-    global _forecast_raw
-
-    # TODO for the development time, update on every try if not _lap_list_raw:
-    _update_forecast()
-
-    return _forecast_raw
-
-
-def get_car_status_formatted(dt: pendulum.DateTime) -> JsonStatusResponse:
-    global _current_status_formatted
-
-    # TODO for the development time, update on every try if not _current_status_formatted:
-    _update_car_status()
-
-    return _current_status_formatted
-
-
-def describe_status_fields() -> List[DatabaseFieldDescription]:
-    from src.db_models import LabelFormat, CalculatedField
-
-    global _current_status_raw
-
-    # TODO for the development time, update on every try if not _current_status_raw:
-    _update_car_status()
-
-    out = FieldDescriptionList(items=[])
-    if not _current_status_raw:
+    def get_status_formatted(self) -> JsonStatusResponse:
+        """
+        get current status raw
+        :return: retrieved data
+        """
+        if not self.current_status_formatted:
+            self.update_status()
+        out = self.current_status_formatted
+        out.totalLabels = self.total_formatted  # TODO this is not nice hack
         return out
 
-    database_raw_fields = get_database_fields_status()
-    hardcoded_calculated_fields = {cf.name: cf for cf in
-                                   src.data_processor.calculated_fields_status.get_calculated_fields_status()}
-    database_calculated_fields = {cf.name: cf for cf in
-                                  CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.STATUS.value)}
+    def get_positions_raw(self) -> List[Dict[str, Any]]:
+        """
+        get current positions raw
+        :return: retrieved data
+        """
+        if not self.car_positions_raw:
+            self.update_positions_laps_forecast()
+        return self.car_positions_raw
 
-    # remember the order (custom, hardcoded, db) as the names may be overridden
-    for key in _current_status_raw:
-        if key in hardcoded_calculated_fields:
-            cf = hardcoded_calculated_fields[key]
-            out.items.append(DatabaseFieldDescription(
-                name=cf.name, description=cf.description, return_type=cf.return_type))
-        elif key in database_raw_fields:
-            out.items.append(database_raw_fields[key])
-        elif key in database_calculated_fields:
-            cf = database_calculated_fields[key]
-            out.items.append(DatabaseFieldDescription(
-                name=cf.name, description=cf.description, return_type=cf.return_type))
-        else:
-            # fallback
-            out.items.append(DatabaseFieldDescription(name=key, description="__fallback__"))
+    def get_laps_raw(self) -> List[Dict[str, Any]]:
+        """
+        get laps raw form
+        :return: retrieved data
+        """
+        if not self.lap_list_raw:
+            self.update_positions_laps_forecast()
+        return self.lap_list_raw
 
-    return out
+    def get_laps_formatted(self) -> JsonLapsResponse:
+        """
+        get laps formatted for UI
+        :return: retrieved data
+        """
+        if not self.laps_formatted:
+            self.update_positions_laps_forecast()
+        return self.laps_formatted
+
+    def get_total_raw(self) -> Dict[str, Any]:
+        """
+        get total raw
+        :return: retrieved data
+        """
+        if not self.total_raw:
+            self.update_positions_laps_forecast()
+        return self.total_raw
+
+    def get_total_formatted(self) -> JsonLabelGroup:
+        """
+        get total formatted
+        :return: retrieved data
+        """
+        if not self.total_formatted:
+            self.update_positions_laps_forecast()
+        return self.total_formatted
+
+    def get_forecast_raw(self) -> Dict[str, Any]:
+        """
+        get forecast raw
+        :return: retrieved data
+        """
+        if not self.forecast_raw:
+            self.update_positions_laps_forecast()
+        return self.forecast_raw
+
+    def get_forecast_formatted(self) -> JsonLabelGroup:
+        """
+        get forecast formatted
+        :return: retrieved data
+        """
+        if not self.forecast_formatted:
+            self.update_positions_laps_forecast()
+        return self.forecast_formatted
+
+    # TODO add charging in better way
+    def get_car_chargings(self, lap_id: int):
+
+        if not self.lap_list_raw:
+            self.update_positions_laps_forecast()
+
+        lap = self.lap_list_raw[lap_id]
+        pit_start = lap['pit_start_time']
+        pit_end = lap['pit_end_time']
+        from src import configuration  # imports global configuration
+        return src.data_source.teslamate.get_car_chargings(configuration.car_id, pit_start, pit_end)
+
+    ####################
+    # other UI helpers #
+    ####################
+    # Not needed any more
+    # def describe_status_fields(self) -> List[DatabaseFieldDescription]:
+    #     from src.db_models import LabelFormat, CalculatedField
+    #
+    #     # TODO for the development time, update on every try if not _current_status_raw:
+    #     self.update_status()
+    #
+    #     out = FieldDescriptionList(items=[])
+    #
+    #     database_raw_fields = get_database_fields_status()
+    #     hardcoded_calculated_fields = {cf.name: cf for cf in
+    #                                    src.data_processor.calculated_fields_status.get_calculated_fields_status()}
+    #     database_calculated_fields = {cf.name: cf for cf in
+    #                                   CalculatedField.get_all_by_scope(CalculatedFieldScopeEnum.STATUS.value)}
+    #
+    #     # remember the order (custom, hardcoded, db) as the names may be overridden
+    #     for key in self._current_status_raw:
+    #         if key in hardcoded_calculated_fields:
+    #             cf = hardcoded_calculated_fields[key]
+    #             out.items.append(DatabaseFieldDescription(
+    #                 name=cf.name, description=cf.description, return_type=cf.return_type))
+    #         elif key in database_raw_fields:
+    #             out.items.append(database_raw_fields[key])
+    #         elif key in database_calculated_fields:
+    #             cf = database_calculated_fields[key]
+    #             out.items.append(DatabaseFieldDescription(
+    #                 name=cf.name, description=cf.description, return_type=cf.return_type))
+    #         else:
+    #             # fallback
+    #             out.items.append(DatabaseFieldDescription(name=key, description="__fallback__"))
+    #
+    #     return out
+
+    def test_custom_calculated_field(self, field_name: str, scope_code: str, function_code: str, return_type: str) \
+            -> Optional[Any]:
+        from src.db_models import CalculatedField
+        from src import configuration  # imports global configuration
+
+        if not self.current_status_raw:
+            self.update_status()
+
+        field = CalculatedField(
+            id=-1, name=field_name, description="", return_type=return_type, calc_fn=function_code, scope_id=1   # TODO
+        )
+        current_item = {}
+
+        # TODO generate current item and index based on the scope
+
+        self._add_user_defined_calculated_field(field, current_item,
+                                                initial_status=self.initial_status_raw,
+                                                current_status=self.current_status_raw,
+                                                position_list=self.car_positions_raw,
+                                                lap_list=self.lap_list_raw,
+                                                forecast=self.forecast_raw,
+                                                current_item_index=None,
+                                                configuration=configuration,
+                                                now_dt=pendulum.now(tz='utc')
+                                                )
+        return current_item
+
+    def test_custom_label_format(self, group_code: str, field: str, label: str, format_fn: str, format_str: str,
+                                 unit: str, default: str) -> List[JsonLabelItem]:
+        from src.db_models import LabelFormat
+        from src import configuration  # imports global configuration
+
+        if not self.current_status_raw:
+            self.update_status()
+
+        label_format = LabelFormat(field=field, label=label, format_function=format_fn, format=format_str, unit=unit,
+                                   default=default, group_id=1)  # TODO
+
+        # TODO generate current item and index based on the scope
+
+        formatted_items = generate_labels([label_format],
+                                          self.current_status_raw, pendulum.now(tz='utc'))
+        return formatted_items
 
 
-def test_custom_calculated_field(field_name: str, scope_code: str, function_code: str, return_type: str) -> Optional[Any]:
-    from src.db_models import CalculatedField
-    from src import configuration  # imports global configuration
-
-    global _initial_status_raw
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
-
-    if not _current_status_raw:
-        _update_car_status()
-
-    field = CalculatedField(
-        id=-1, name=field_name, description="", return_type=return_type, calc_fn=function_code, scope_id=1   # TODO
-    )
-    current_item = {}
-
-    # TODO generate current item and index based on the scope
-
-    _add_user_defined_calculated_field(field, current_item,
-                                       initial_status=_initial_status_raw,
-                                       current_status=_current_status_raw,
-                                       position_list=_car_positions_raw,
-                                       lap_list=_lap_list_raw,
-                                       forecast=_forecast_raw,
-                                       current_item_index=None,
-                                       configuration=configuration
-                                       )
-    return current_item
-
-
-def test_custom_label_format(group_code: str, field: str, label: str, format_fn: str, format: str, unit: str, default: str) -> LabelItem:
-    from src.db_models import LabelFormat
-    from src import configuration  # imports global configuration
-
-    global _initial_status_raw
-    global _current_status_raw
-    global _current_status_formatted
-    global _car_positions_raw
-    global _lap_list_raw
-    global _forecast_raw
-
-    if not _current_status_raw:
-        _update_car_status()
-
-    label_format = LabelFormat(field=field, label=label, format_function=format_fn, format=format, unit=unit,
-                               default=default, group_id=1)  # TODO
-
-    current_item = {}
-
-    # TODO generate current item and index based on the scope
-
-    formatted_items = generate_labels([label_format],
-                                      _current_status_raw)
-    return formatted_items
-
-
-def get_car_chargings(lap_id: int):
-    global _lap_list_raw
-
-    if not _lap_list_raw:
-        _update_car_laps()
-
-    lap = _lap_list_raw[lap_id]
-    pit_start = lap['pit_start_time']
-    pit_end = lap['pit_end_time']
-    from src import configuration  # imports global configuration
-    return src.data_source.teslamate.get_car_chargings(configuration.car_id, pit_start, pit_end)
+# let's have just one singleton to be used
+data_processor = DataProcessor()

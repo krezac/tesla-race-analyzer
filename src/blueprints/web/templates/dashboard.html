@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+
+{% from "macro_ajax.jinja2" import macro_ajax_call with context %}
+{% from "macro_map.jinja2" import macro_map_html with context %}
+{% from "macro_map.jinja2" import macro_map_code with context %}
+{% from "macro_map.jinja2" import macro_map_update_function with context %}
+{% from "macro_label_group.jinja2" import macro_label_group_html with context %}
+{% from "macro_label_group.jinja2" import macro_label_group_update_function with context %}
+{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_style with context %}
+{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_html with context %}
+{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_code with context %}
+{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_update_function with context %}
 <html>
 <head>
 
@@ -20,182 +31,28 @@
 
 
     <style>
-        .map_column {
-            float: left;
-            /* width: 50%; */
-            padding-left: 40px;
-            padding-right: 40px;
-        }
-
-        .status_text_column {
-            float: left;
-            /* width: 50%; */
-            padding-left: 40px;
-            padding-right: 40px;
-        }
-
-        .section_title {
-            font-weight: bold;
-            padding-top: 10px;
-            padding-bottom: 5px;
-        }
-
-        @media only screen and (min-width: 500px) {
-            .map_row {
-                display: flex;
-            }
-        }
-
-        /* Clear floats after the columns */
-        .map_row:after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
-        #mapid {
-            width: 70vw;
-            height: 500px;
-            max-height: 70vh;
-        }
-
-        @media only screen and (min-width: 500px) {
-            #mapid {
-                width: 50vw;
-            }
-        }
-
-        div.minimalistBlack {
-            border: 3px solid #000000;
-            /* width: 100%; */
-            text-align: left;
-            border-collapse: collapse;
-        }
-
-        .divTable.minimalistBlack .divTableCell, .divTable.minimalistBlack .divTableHead {
-            border: 1px solid #000000;
-            padding: 5px 4px;
-        }
-
-        .divTable.minimalistBlack .divTableBody .divTableCell {
-            font-size: 13px;
-        }
-
-        .divTable.minimalistBlack .divTableHeading {
-            background: #CFCFCF;
-            background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-            background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-            background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-            border-bottom: 3px solid #000000;
-        }
-
-        .divTable.minimalistBlack .divTableHeading .divTableHead {
-            font-size: 15px;
-            font-weight: bold;
-            color: #000000;
-            text-align: left;
-        }
-
-        .minimalistBlack .tableFootStyle {
-            font-size: 14px;
-        }
-
-        /* DivTable.com */
-        .divTable {
-            display: table;
-        }
-
-        .divTableRow {
-            display: table-row;
-        }
-
-        .divTableHeading {
-            display: table-header-group;
-        }
-
-        .divTableCell, .divTableHead {
-            display: table-cell;
-        }
-
-        .divTableHeading {
-            display: table-header-group;
-        }
-
-        .divTableFoot {
-            display: table-footer-group;
-        }
-
-        .divTableBody {
-            display: table-row-group;
-        }
-
-        #total-lap-div, #recent-lap-div, #previous-laps-div {
-            width: 100%;
-            overflow-x: scroll;
-        }
-
-
+        {{ macro_horizontal_table_style('???') }}
     </style>
 
 </head>
 <body>
 
 <div class="map_row">
-    <div id="mapid" class="map_column"></div>
+    <div id="mapid" class="map_column">
+        {{ macro_map_html('car_map') }}
+    </div>
     <div class="status_text_column">
-        <div id="status_text"></div>
+        {{ macro_label_group_html('car_status') }}
         <hr/>
-        <div id="forecast_text"></div>
+        {{ macro_label_group_html('car_total') }}
+        <hr/>
+        {{ macro_label_group_html('car_forecast') }}
     </div>
 </div>
 
-<div class="section_title">Total Race Data</div>
-<div id="total-lap-div">
-    <div id="total-lap-table" class="divTable minimalistBlack">
-        <div class="divTableHeading">
-            <div class="divTableRow">
-                <div class="divTableHead"></div>
-            </div>
-        </div>
-        <div class="divTableBody">
-            <div class="divTableRow">
-                <div class="divTableCell"></div>
-            </div>
-        </div>
-    </div>
-</div>
+{{ macro_horizontal_table_html('recent_lap', 'recent lap') }}
+{{ macro_horizontal_table_html('previous_laps', 'previous laps') }}
 
-<div class="section_title">Recent Lap Data</div>
-<div id="recent-lap-div">
-    <div id="recent-lap-table" class="divTable minimalistBlack">
-        <div class="divTableHeading">
-            <div class="divTableRow">
-                <div class="divTableHead"></div>
-            </div>
-        </div>
-        <div class="divTableBody">
-            <div class="divTableRow">
-                <div class="divTableCell"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="section_title">Previous Laps Data</div>
-<div id="previous-laps-div">
-    <div id="previous-laps-table" class="divTable minimalistBlack">
-        <div class="divTableHeading">
-            <div class="divTableRow">
-                <div class="divTableHead"></div>
-            </div>
-        </div>
-        <div class="divTableBody">
-            <div class="divTableRow">
-                <div class="divTableCell"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
     function getStatusText(car_status_labels) {
@@ -210,120 +67,41 @@
         return statusText;
     }
 
-    function buildTable(table_id, data) {
-        var tableBody = document.getElementById(table_id);
-        var header_data = data[0];
-
-        $("#" + table_id + " .divTableHeading .divTableRow").html('');
-        $("#" + table_id + " .divTableBody").html('');
-
-        data[0].forEach(function (item, index) {
-            $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead">${item.label}</div>`);
-        });
-
-        data.forEach(function (data_row, index) {
-            $("#" + table_id + " .divTableBody").append(`<div class="divTableRow"></div>`);
-            data_row.forEach(function (item, index) {
-               $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${item.value}</div>`);
-            });
-        });
-    }
+    {{ macro_horizontal_table_code('recent_lap') }}
+    {{ macro_horizontal_table_code('previous_laps') }}
 
     $(document).ready(function () {
-        var mymap = L.map('mapid').setView([0.0, 0.0],
-        {{ config.defaultMapZoom or 16 }});  // default if zoom not provided
+        {{ macro_map_code('car_map') }}
 
-        var geojsonMarkerOptions = {
-            radius: 8,
-            fillColor: "#FF0000",// "#28ea3f",//"#0163FF",
-            color: "#FF0000", //"#0163FF",
-            weight: 24,
-            opacity: 0.25,
-            fillOpacity: 1,
-            // className: 'marker-cluster'
+        function statusUpdateSuccess(data) {
+            {{ macro_map_update_function('car_map', 'data.lat', 'data.lon', 'data.mapLabels') }}
+            {{ macro_label_group_update_function('car_status', 'data.statusLabels') }}
+            {{ macro_label_group_update_function('car_total', 'data.totalLabels') }}
+            {{ macro_label_group_update_function('car_forecast', 'data.forecastLabels') }}
+        }
 
-          };
+        function statusUpdateFailure() {
+          {{ macro_map_update_function('car_map', null, null, null) }}
+        }
 
-/*
-        // raw osm
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-            id: 'mapbox/streets-v11',
-            tileSize: 512,
-            zoomOffset: -1
-        }).addTo(mymap);
-*/
-        // mapbox osm
-        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            maxZoom: 19,
-            id: 'mapbox/streets-v11',
-            tileSize: 512,
-            zoomOffset: -1,
-            accessToken: 'pk.eyJ1Ijoibm9ydG9uc2siLCJhIjoiY2tqYmVsODgzM2I1djJ5bGd5MjMwZW9rdCJ9.SB6qH7ooIOQsb_DdyiAMAA'  // public token
-        }).addTo(mymap);
+        function lapsUpdateSuccess(data) {
+            {{ macro_horizontal_table_update_function('recent_lap', '[data.recent]') }}
+            {{ macro_horizontal_table_update_function('previous_laps', 'data.previous') }}
+        }
 
-        var myRenderer = L.canvas({padding: 0.5});
-        var lat = 0.0;
-        var lng = 0.0;
-        var circleMarker = L.circleMarker([lat, lng], geojsonMarkerOptions).addTo(mymap)
-            .bindPopup("???").openPopup();
+        function lapsUpdateFailure() {
+            {{ macro_horizontal_table_update_function('recent_lap', '[]') }}
+            {{ macro_horizontal_table_update_function('previous_laps', '[]') }}
+        }
 
-        (function getStatusJson() {
-            $.ajax({
-                url: '{{ get_status_url }}',
-                dataType: 'json',
-            })
-                .done(function (data) {
-                    car_status = data
-                    circleMarker.setLatLng(new L.LatLng(car_status.lat, car_status.lon));
-                    circleMarker._popup.setContent(getStatusText(car_status.mapLabels))
-                    $("#status_text").html(getStatusText(car_status.textLabels));
-                    $("#forecast_text").html(getStatusText(car_status.forecastLabels));
-                })
-                .fail(function () {
-                    statusText = "No data";
-                    circleMarker._popup.setContent(statusText);
-                    $("#status_text").html(statusText);
-                    $("#forecast_text").html(statusText);
-                })
-                .always(function () {
-                    // Schedule the next request when the current one's complete
-                    setTimeout(getStatusJson, {{ 1000 * (config.statusRefreshSeconds or 5) }});
-                });
-        })();
+        // ajax calls
+        {{ macro_ajax_call('car_status_update', get_status_url, 2000, 3, 'statusUpdateSuccess', 'statusUpdateFailure') }}
+        {{ macro_ajax_call('car_laps_update', get_laps_url, 2000, 3, 'lapsUpdateSuccess', 'lapsUpdateFailure') }}
 
-        (function getLapsJson() {
-            $.ajax({
-                url: '{{ get_laps_url }}',
-                dataType: 'json',
-            })
-                .done(function (data) {
-                    laps = data
-                    buildTable("total-lap-table", [laps.total]);  // make it list so it's compatible with prev
-                    buildTable("previous-laps-table", laps.previous);
-                    buildTable("recent-lap-table", [laps.recent]);  // make it list so it's compatible with prev
-
-                })
-                .fail(function () {
-                    buildTable("total-lap-table", []);  // make it list so it's compatible with prev
-                    buildTable("previous-laps-table", []);
-                    buildTable("recent-lap-table", []);  // make it list so it's compatible with prev
-                })
-                .always(function () {
-                    // Schedule the next request when the current one's complete
-                    setTimeout(getLapsJson, {{ 1000* (config.lapsRefreshSeconds or 30) }});
-                });
-        })();
-
-    }
-
-    )
-    ;
+    });
 </script>
 
 <hr/>
-Source code available at <a href="https://github.com/krezac/tesla-data-source" target="_blank">https://github.com/krezac/tesla-data-source</a>
+Source code available at <a href="https://github.com/krezac/tesla-race-analyzer" target="_blank">https://github.com/krezac/tesla-race-analyzer</a>
 </body>
 </html>

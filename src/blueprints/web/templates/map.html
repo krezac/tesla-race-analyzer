@@ -1,10 +1,13 @@
-
 <!DOCTYPE html>
+
+{% from "macro_ajax.jinja2" import macro_ajax_call with context %}
+{% from "macro_map.jinja2" import macro_map_html with context %}
+{% from "macro_map.jinja2" import macro_map_code with context %}
+{% from "macro_map.jinja2" import macro_map_update_function with context %}
+
 <html>
 <head>
-
 	<title>Car status and position</title>
-
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -13,8 +16,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-
-
 <style>
     body {
         margin: 0;
@@ -23,93 +24,25 @@
 
 </head>
 <body>
-
-<div id="mapid" style="width: 100vw; height: 100vh" class="column"></div>
+<div style="width: 100vw; height: 100vh">
+    {{ macro_map_html('car_map') }}
+</div>
 
 <script>
-    function getStatusText(car_status_labels) {
-        statusText = "";
-        car_status_labels.items.forEach(function (item, index) {
-          statusText += `<b>${item.label}</b>: ${item.value}<br/>`;
-        });
-        return statusText;
-    }
-
     $(document).ready(function () {
-        var mymap = L.map('mapid').setView([0.0, 0.0], {{ zoom or 16 }});  // default if zoom not provided
 
-        var geojsonMarkerOptions = {
-            radius: 8,
-            fillColor: "#FF0000",// "#28ea3f",//"#0163FF",
-            color: "#FF0000", //"#0163FF",
-            weight: 24,
-            opacity: 0.25,
-            fillOpacity: 1,
-            // className: 'marker-cluster'
+        {{ macro_map_code('car_map') }}
 
-          };
+        function dataUpdateSuccess(data) {
+          {{ macro_map_update_function('car_map', 'data.lat', 'data.lon', 'data.mapLabels') }}
+        }
 
-/*
-        // raw osm
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-            id: 'mapbox/streets-v11',
-            tileSize: 512,
-            zoomOffset: -1
-        }).addTo(mymap);
-*/
-        // mapbox osm
-        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            maxZoom: 18,
-            id: 'mapbox/streets-v11',
-            tileSize: 512,
-            zoomOffset: -1,
-            accessToken: 'pk.eyJ1Ijoibm9ydG9uc2siLCJhIjoiY2tqYmVsODgzM2I1djJ5bGd5MjMwZW9rdCJ9.SB6qH7ooIOQsb_DdyiAMAA'  // public token
-        }).addTo(mymap);
+        function dataUpdateFailure() {
+          {{ macro_map_update_function('car_map', null, null, null) }}
+        }
 
-        var myRenderer = L.canvas({ padding: 0.5 });
-        var lat = 0.0;
-        var lng = 0.0;
-        var circleMarker = L.circleMarker([lat, lng], geojsonMarkerOptions).addTo(mymap)
-            .bindPopup("???").openPopup();
-
-        var default_delay = 2000;
-        var default_retries = 3;
-        var delay = default_delay;
-        var retries = default_retries;
-        (function worker() {
-          $.ajax({
-            url: '{{ get_status_url }}',
-            dataType: 'json',
-          })
-          .done(function(data) {
-              car_status = data
-              circleMarker.setLatLng(new L.LatLng(car_status.lat, car_status.lon));
-              circleMarker._popup.setContent(getStatusText(car_status.mapLabels))
-              delay = default_delay;
-              retries = default_retries;
-            })
-          .fail(function() {
-              statusText = "No data";
-                circleMarker._popup.setContent(statusText);
-                if (retries-- > 0) {
-                    delay = default_delay;
-                } else {
-                    delay *= 2;
-                    console.log("Exponential backoff, delay is now " + delay);
-                }
-            })
-          .always(function() {
-              // Schedule the next request when the current one's complete
-              setTimeout(worker, delay);
-            });
-        })();
+        {{ macro_ajax_call('car_status_update', get_status_url, 2000, 3, 'dataUpdateSuccess', 'dataUpdateFailure') }}
     });
 </script>
-
-
-
 </body>
 </html>

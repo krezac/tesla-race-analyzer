@@ -1,0 +1,30 @@
+{% macro  macro_label_group_html(name) %}
+    <div id="{{ name }}_label_group_div">{{ name }}</div>
+{% endmacro %}
+
+{% macro  macro_label_group_code(name, endpoint, period_ms, retries, on_success_fn, on_fail_fn) %}
+
+{% endmacro %}
+
+{% macro  macro_label_group_update_function(name, label_group_var) %}
+    {% if latitude_var and longitude_var %}
+        {{ name }}_circleMarker.setLatLng(new L.LatLng({{ latitude_var }}, {{ longitude_var }}));
+    {% endif %}
+    {% if label_group_var %}
+    var {{ name }}_statusText = "";
+    if ({{ label_group_var }} && {{ label_group_var }}.title) {
+            {{ name }}_statusText += "<B>" + {{ label_group_var }}.title + "</b><br/>";
+        }
+
+    if ({{ label_group_var }} && {{ label_group_var }}.items) {
+        {{ label_group_var }}.items.forEach(function (item, index) {
+          {{ name }}_statusText += `<b>${item.label}</b>: ${item.value}<br/>`;
+        });
+    } else {
+        $("#{{ name }}_label_group_div").html("-- no data --");
+    }
+    $("#{{ name }}_label_group_div").html({{ name }}_statusText);
+    {% else %}
+        $("#{{ name }}_label_group_div").html("-- no data --");
+    {% endif %}
+{% endmacro %}

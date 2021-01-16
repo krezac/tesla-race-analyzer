@@ -29,4 +29,4 @@ def add_calculated_fields(*,
     :param now_dt: time to calculate data for.
     :return:
     """
-    current_item['distance'] = position_list[-1]['odometer'] - position_list[0]['odometer'] if position_list else None  # TODO remove, just for testing
+    current_item['distance'] = position_list[-1]['odometer'] - position_list[0]['odometer'] if position_list else None

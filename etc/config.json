@@ -8,5 +8,6 @@
   "start_longitude": 12.135311,
   "start_radius": 0.1,
   "merge_from_lap": 1,
-  "laps_merged": 1
+  "laps_merged": 1,
+  "show_previous_laps": 20
 }
