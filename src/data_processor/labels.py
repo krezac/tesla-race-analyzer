@@ -24,7 +24,7 @@ def format_fn_period_words(raw_value: pendulum.Period, _format_str: str, now_dt:
 
 
 def format_fn_datetime(raw_value: pendulum.DateTime, format_str: str, now_dt: pendulum.DateTime) -> str:
-    raw_value_tz = raw_value.in_tz('Europe/Paris')
+    raw_value_tz = raw_value.in_tz('local')
     return raw_value_tz.format(format_str) if format_str else str(raw_value_tz)
 
 

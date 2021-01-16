@@ -58,14 +58,14 @@ def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = 
 
 
 @function_timer()
-def get_car_positions(car_id: int, dt: pendulum.DateTime, hours: int, update_fast_data: bool = True) -> List[Dict[str, Any]]:
+def get_car_positions(car_id: int, dt_start: pendulum.DateTime, dt_end: pendulum.DateTime, update_fast_data: bool = True) -> List[Dict[str, Any]]:
     from src import db
     # get the full records  #####   AND usable_battery_level IS NOT NULL
     sql = text("""SELECT * FROM positions 
-                  WHERE car_id = :car_id AND date >= :dt AND date <= (:dt + interval ':hours hours')
+                  WHERE car_id = :car_id AND date >= :dt_start AND date <= :dt_end
                   AND usable_battery_level IS NOT NULL 
                   ORDER BY date""")
-    resultproxy = db.get_engine(bind='teslamate').execute(sql, {'car_id': car_id, 'dt': dt, 'hours': hours})
+    resultproxy = db.get_engine(bind='teslamate').execute(sql, {'car_id': car_id, 'dt_start': dt_start, 'dt_end': dt_end})
     return _cursor_one_to_dict_list(resultproxy)
 
 

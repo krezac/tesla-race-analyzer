@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Callable, Type
+from typing import Optional, List, Callable, Type, Dict, Any
 import pendulum
 import datetime
 import os
@@ -61,8 +61,29 @@ class JsonStatusResponse(BaseModel):
     totalLabels: JsonLabelGroup
     forecastLabels: JsonLabelGroup
 
+class JsonLapListWrapper(BaseModel):
+    __root__: List[JsonLabelGroup]
+
 
 class JsonLapsResponse(BaseModel):
     # TODO migrate total to separate structure total: JsonLabelGroup
-    previous: List[JsonLabelGroup]
-    recent: JsonLabelGroup
+    previous: JsonLapListWrapper
+    recent: Optional[JsonLabelGroup]
+
+
+class JsonStaticSnapshot(BaseModel):
+    initial_status_raw: Optional[Dict[str, Any]]
+
+    current_status_raw: Optional[Dict[str, Any]]
+    current_status_formatted: Optional[JsonStatusResponse]
+
+    car_positions_raw: Optional[List[Dict[str, Any]]]
+
+    lap_list_raw: Optional[List[Dict[str, Any]]]
+    lap_list_formatted: Optional[JsonLapsResponse]
+
+    total_raw: Optional[Dict[str, Any]]
+    total_formatted: Optional[JsonLabelGroup]
+
+    forecast_raw: Optional[Dict[str, Any]]
+    forecast_formatted: Optional[JsonLabelGroup]

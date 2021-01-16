@@ -84,6 +84,8 @@ def create_app():
                                               category="Go to UI"))
         admin.add_view(MySecurityRedirectView(url_key='web_bp.laps', name="Laps", endpoint="ui_laps",
                                               category="Go to UI"))
+        admin.add_view(MySecurityRedirectView(url_key='web_bp.static_dashboard', name="Browse history dashboard", endpoint="ui_static_dashboard",
+                                              category="Go to UI"))
 
         admin.add_view(MyAdminView(Driver, db.session, category="Drivers"))
         admin.add_view(MyAdminView(DriverChange, db.session, category="Drivers"))

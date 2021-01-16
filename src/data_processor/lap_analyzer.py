@@ -225,7 +225,7 @@ def extract_lap_status(configuration: Configuration, split: LapSplit, segment) -
     # real_energy_km = real_energy / (lap_data[-1].odometer - lap_data[0].odometer) * 1000
 
     lap = {
-        "id": split.lapId,
+        "lap_id": split.lapId,
         "lap_data": lap_data,
         "pit_data": pit_data,
     }

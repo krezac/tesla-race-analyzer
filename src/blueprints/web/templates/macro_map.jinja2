@@ -3,9 +3,9 @@
 {% endmacro %}
 
 
-{% macro  macro_map_code(name, default_zoom, max_zoom) %}
+{% macro  macro_map_code(name, latitude, longitude) %}
 
-        var {{ name }}_map = L.map('{{ name }}_map_div').setView([0.0, 0.0], {{ default_zoom or 16 }});  // default if zoom not provided
+        var {{ name }}_map = L.map('{{ name }}_map_div').setView([{{ latitude }}, {{ longitude }}], {{ default_zoom or 16 }});  // default if zoom not provided
 
         var {{ name }}_geojsonMarkerOptions = {
             radius: 8,
@@ -28,7 +28,7 @@
             accessToken: 'pk.eyJ1Ijoibm9ydG9uc2siLCJhIjoiY2tqYmVsODgzM2I1djJ5bGd5MjMwZW9rdCJ9.SB6qH7ooIOQsb_DdyiAMAA'  // public token
         }).addTo({{ name }}_map);
 
-        var {{ name }}_circleMarker = L.circleMarker([0, 0], {{ name }}_geojsonMarkerOptions).addTo({{ name }}_map)
+        var {{ name }}_circleMarker = L.circleMarker([{{ latitude }}, {{ longitude }}], {{ name }}_geojsonMarkerOptions).addTo({{ name }}_map)
             .bindPopup("-- no data yet --").openPopup();
 {% endmacro %}
 

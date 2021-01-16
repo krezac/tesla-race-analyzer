@@ -12,6 +12,7 @@ def add_calculated_fields(*,
                           position_list,
                           lap_list,
                           forecast,
+                          total,
                           configuration: Configuration,
                           current_item_index: Optional[int],
                           now_dt: pendulum.DateTime):
@@ -25,6 +26,7 @@ def add_calculated_fields(*,
     :param position_list:
     :param lap_list:
     :param forecast:
+    :param total:
     :param configuration:
     :param current_item_index:
     :param now_dt: time to calculate data for.
@@ -39,8 +41,8 @@ def add_calculated_fields(*,
 
     current_item['air_distance'] = geopy_distance(
         (configuration.start_latitude, configuration.start_longitude),
-        (current_status['latitude'], current_status['longitude'])
-        ).km if current_status['latitude'] is not None and current_status['longitude'] is not None else None
+        (current_item['latitude'], current_item['longitude'])
+        ).km if current_item['latitude'] is not None and current_item['longitude'] is not None else None
 
     current_item['start_time'] = start_time
     current_item['end_time'] = end_time
@@ -50,4 +52,4 @@ def add_calculated_fields(*,
     current_item['time_to_end'] = pendulum.period(now_dt, end_time, True) \
         if now_dt <= end_time else pendulum.period(now_dt, now_dt, True)
 
-    current_item['lap_number'] = lap_list[-1]['id'] if lap_list else None
+    current_item['lap_number'] = lap_list[-1]['lap_id'] if lap_list else None
