@@ -8,6 +8,7 @@ class LabelFormatGroupEnum(Enum):
     RECENT_LAP = 'recent_lap'
     PREVIOUS_LAPS = 'previous_laps'
     FORECAST = 'forecast'
+    CHARGING = 'charging'
 
 
 class CalculatedFieldScopeEnum(Enum):
@@ -16,4 +17,4 @@ class CalculatedFieldScopeEnum(Enum):
     TOTAL = 'total'
     LAP = 'lap'
     FORECAST = 'forecast'
-
+    CHARGING = 'charging'

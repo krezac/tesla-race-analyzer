@@ -134,9 +134,9 @@ def find_laps(configuration: Configuration, segment, region=10, min_time=5, star
 
     # new
     statuses = extract_lap_statuses(configuration, agg_splits, segment)
-    # TODO
-    # if not agg_splits[-1].lapLeaveIdx or distance[agg_splits[-1].lapLeaveIdx] > region:
-    #     statuses[-1]['finished'] = False  # outside of region
+    # TODO implement better way
+    if not agg_splits[-1].lapLeaveIdx or distance[agg_splits[-1].lapLeaveIdx] > region:
+        statuses[-1]['finished'] = False  # outside of region
     return statuses
 
 
@@ -208,11 +208,11 @@ def extract_lap_status(configuration: Configuration, split: LapSplit, segment) -
     """
 
     lap_start = split.lapEntryIdx
-    lap_stop = split.lapLeaveIdx + 1 if split.lapLeaveIdx else len(segment) - 1
+    lap_stop = split.lapLeaveIdx + 1 if split.lapLeaveIdx is not None else len(segment) - 1
     lap_data = segment[lap_start:lap_stop]
 
     pit_start = split.pitEntryIdx
-    pit_stop = split.pitLeaveIdx + 1 if split.pitLeaveIdx else len(segment) - 1
+    pit_stop = split.pitLeaveIdx + 1 if split.pitLeaveIdx is not None else len(segment) - 1
     pit_data = segment[pit_start:pit_stop]
 
     # try to calculate real energy
@@ -228,6 +228,7 @@ def extract_lap_status(configuration: Configuration, split: LapSplit, segment) -
         "lap_id": split.lapId,
         "lap_data": lap_data,
         "pit_data": pit_data,
+        "finished": True  # will be cleared later if needed
     }
 
 

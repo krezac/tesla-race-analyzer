@@ -31,8 +31,15 @@ class Configuration(BaseModel):
     merge_from_lap: float
     laps_merged: float
     show_previous_laps: int
-    vertical_previous_laps: bool
-    reverse_previous_laps: bool
+    previous_laps_table_vertical: bool
+    previous_laps_table_reversed: bool
+
+    charging_table_vertical: bool
+    charging_table_reversed: bool
+
+    forecast_exclude_first_laps: int
+    forecast_use_last_laps: int
+
 
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
@@ -64,13 +71,14 @@ class JsonStatusResponse(BaseModel):
     totalLabels: JsonLabelGroup
     forecastLabels: JsonLabelGroup
 
-class JsonLapListWrapper(BaseModel):
+
+class JsonResponseListWrapper(BaseModel):
     __root__: List[JsonLabelGroup]
 
 
 class JsonLapsResponse(BaseModel):
     # TODO migrate total to separate structure total: JsonLabelGroup
-    previous: JsonLapListWrapper
+    previous: JsonResponseListWrapper
     recent: Optional[JsonLabelGroup]
 
 
@@ -87,6 +95,9 @@ class JsonStaticSnapshot(BaseModel):
 
     total_raw: Optional[Dict[str, Any]]
     total_formatted: Optional[JsonLabelGroup]
+
+    charging_process_list_raw: Optional[List[Dict[str, Any]]]
+    charging_process_list_formatted: Optional[JsonResponseListWrapper]
 
     forecast_raw: Optional[Dict[str, Any]]
     forecast_formatted: Optional[JsonLabelGroup]

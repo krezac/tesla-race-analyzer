@@ -2,15 +2,22 @@
   "anonymous_index_page": "web_bp.dashboard",
   "admin_index_page": "admin.index",
   "car_id": 2,
-  "start_time": "2021-01-02T12:00:00.000Z",
+  "start_time": "2021-01-02T12:30:00.000Z",
   "hours": 24,
   "start_latitude": 49.532277,
   "start_longitude": 12.135311,
   "start_radius": 0.1,
   "merge_from_lap": 1,
   "laps_merged": 1,
-  "show_previous_laps": 20,
-  "vertical_previous_laps": true,
-  "reverse_previous_laps": false
+  "show_previous_laps": 25,
+
+  "previous_laps_table_vertical": false,
+  "previous_laps_table_reversed": true,
+  "charging_table_vertical": false,
+  "charging_table_reversed": true,
+
+  "forecast_exclude_first_laps": 1,
+  "forecast_use_last_laps": 5
+
 
 }

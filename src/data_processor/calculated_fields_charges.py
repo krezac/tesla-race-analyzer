@@ -1,5 +1,6 @@
 from typing import Optional, Dict, List, Any
 import pendulum
+
 from src.data_models import CalculatedFieldDescription
 from src.data_models import Configuration
 
@@ -33,4 +34,11 @@ def add_calculated_fields(*,
     :param now_dt: time to calculate data for.
     :return:
     """
-    current_item['distance'] = position_list[-1]['odometer'] - position_list[0]['odometer'] if position_list else None
+
+    current_item['duration'] = current_item['end_date'] - current_item['start_date'] \
+        if 'start_date' in current_item and 'end_date' in current_item \
+           and current_item['start_date'] and current_item['end_date'] else None
+
+    current_item['efficiency'] = 100.0 * current_item['charge_energy_added'] / current_item['charge_energy_used'] \
+        if 'charge_energy_added' in current_item and 'charge_energy_added' in current_item \
+           and current_item['charge_energy_used'] and current_item['charge_energy_used'] else None

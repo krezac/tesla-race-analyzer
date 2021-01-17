@@ -11,8 +11,9 @@ def add_calculated_fields(*,
                           current_status,
                           position_list,
                           lap_list,
-                          forecast,
                           total,
+                          charging_process_list,
+                          forecast,
                           configuration: Configuration,
                           current_item_index: Optional[int],
                           now_dt: pendulum.DateTime):
@@ -25,8 +26,9 @@ def add_calculated_fields(*,
     :param current_status:
     :param position_list:
     :param lap_list:
-    :param forecast:
     :param total:
+    :param charging_process_list:
+    :param forecast:
     :param configuration:
     :param current_item_index:
     :param now_dt: time to calculate data for.

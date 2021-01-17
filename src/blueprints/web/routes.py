@@ -44,8 +44,12 @@ def logout():
 
 @web_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    return render_template("dashboard.html", get_status_url=url_for("api_bp.get_status"),
-                           get_laps_url=url_for("api_bp.get_laps"), admin_ui_url=_get_admin_ui_url())
+    return render_template("dashboard.html",
+                           configuration=configuration,
+                           get_status_url=url_for("api_bp.get_status"),
+                           get_laps_url=url_for("api_bp.get_laps"),
+                           get_chargings_url=url_for("api_bp.get_chargings"),
+                           admin_ui_url=_get_admin_ui_url())
 
 
 @web_bp.route('/map', methods=['GET'])
@@ -55,8 +59,12 @@ def map():
 
 @web_bp.route('/laps', methods=['GET'])
 def laps():
-    return render_template("laps.html", get_status_url=url_for("api_bp.get_status"),
-                           get_laps_url=url_for("api_bp.get_laps"), admin_ui_url=_get_admin_ui_url())
+    return render_template("laps.html",
+                           configuration=configuration,
+                           get_status_url=url_for("api_bp.get_status"),
+                           get_laps_url=url_for("api_bp.get_laps"),
+                           get_chargings_url=url_for("api_bp.get_chargings"),
+                           admin_ui_url=_get_admin_ui_url())
 
 
 @web_bp.route('/charts', methods=['GET'])
@@ -133,8 +141,9 @@ def time_machine():
                            map_labels=snapshot.current_status_formatted.mapLabels.dict(),
                            status_labels=snapshot.current_status_formatted.statusLabels.dict(),
                            total_labels=snapshot.current_status_formatted.totalLabels.dict(),
-                           forecast_labels=snapshot.current_status_formatted.forecastLabels.dict(),
+                           forecast_labels=snapshot.forecast_formatted.dict(),
                            recent_lap=snapshot.lap_list_formatted.recent.dict() if snapshot.lap_list_formatted.recent else None,
                            previous_laps=snapshot.lap_list_formatted.previous.dict(),
+                           charging_processes=snapshot.charging_process_list_formatted.dict(),
                            post_url=url_for('web_bp.time_machine'),
                            admin_ui_url=_get_admin_ui_url())

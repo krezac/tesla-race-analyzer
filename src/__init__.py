@@ -87,26 +87,32 @@ def create_app():
         admin.add_view(MyRedirectView(target_endpoint='web_bp.time_machine', name="Time Machine",
                                       endpoint="ui_time_machine", category="Go to UI"))
 
-        admin.add_view(MyRoleRequiredDataView('admin', Driver, db.session, category="Drivers"))
-        admin.add_view(MyRoleRequiredDataView('operator', DriverChange, db.session, category="Drivers"))
-        admin.add_view(MyRoleRequiredDataView('admin', FieldScope, db.session, category="Calculated Fields"))
-        admin.add_view(MyRoleRequiredDataView('admin', CalculatedField, db.session, category="Calculated Fields"))
-        admin.add_view(MyRoleRequiredDataView('admin', LabelGroup, db.session, category="Formatted Labels"))
-        admin.add_view(MyRoleRequiredDataView('admin', LabelFormat, db.session, category="Formatted Labels"))
-        admin.add_view(MyRoleRequiredDataView('admin', User, db.session, category="Profile"))
-        admin.add_view(MyRoleRequiredDataView('admin', Role, db.session, category="Profile"))
+        # TODO these are just placeholders
+        admin.add_view(MyRoleRequiredDataView('operator', DriverChange, db.session, category="Operator", endpoint="aaa"))
+        admin.add_view(MyRoleRequiredDataView('data', DriverChange, db.session, category="Data", endpoint="bbb"))
+
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView
+        admin.add_view(MyTestCalculatedFieldView('data', name="Calculated Field", endpoint="test_calculated_field",
+                                                 category="Test custom"))
+        admin.add_view(MyTestLabelFormatTestView('data', name="Formatted Label", endpoint="test_label_format",
+                                                 category="Test custom"))
 
-        admin.add_view(MyTestCalculatedFieldView('data', name="Test custom field", endpoint="test_calculated_field",
-                                                 category="Calculated Fields"))
-        admin.add_view(MyTestLabelFormatTestView('data', name="Test custom label", endpoint="test_label_format",
-                                                 category="Formatted Labels"))
+        # pages for built-in db editor
+        admin.add_view(MyRoleRequiredDataView('admin', Driver, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', DriverChange, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', FieldScope, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', CalculatedField, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', LabelGroup, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', LabelFormat, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', User, db.session, category="DB Editor"))
+        admin.add_view(MyRoleRequiredDataView('admin', Role, db.session, category="DB Editor"))
+
 
         admin.add_view(MyRedirectView(target_endpoint='security.login', name="Login",
-                                      endpoint="sec_login", category="Profile"))
+                                      endpoint="sec_login", category="User"))
         admin.add_view(MyRedirectView(target_endpoint='security.logout', name="Logout",
-                                      endpoint="sec_logout", category="Profile"))
+                                      endpoint="sec_logout", category="User"))
 
         # Using the user_claims_loader, we can specify a method that will be
         # called when creating access tokens, and add these claims to the said
@@ -162,6 +168,7 @@ def create_app():
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.RECENT_LAP, 'Current Lap')
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.PREVIOUS_LAPS, 'Previous Laps')
             LabelGroup.add_if_not_exists(LabelFormatGroupEnum.FORECAST, 'Forecast')
+            LabelGroup.add_if_not_exists(LabelFormatGroupEnum.CHARGING, 'Charging')
 
             # calculated field scopes
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.STATUS, 'Status')
@@ -169,6 +176,7 @@ def create_app():
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.TOTAL, 'Total')
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.LAP, 'Lap')
             FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.FORECAST, 'Forecast')
+            FieldScope.add_if_not_exists(CalculatedFieldScopeEnum.CHARGING, 'Charging')
 
             db.session.commit()
 

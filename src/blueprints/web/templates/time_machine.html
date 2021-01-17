@@ -63,14 +63,23 @@
 {{ macro_table_html('recent_lap', 'recent lap') }}
 {{ macro_table_html('previous_laps', 'previous laps') }}
 
+{{ macro_table_html('charging_processes', 'charging processes') }}
 
 <script>
     {{ macro_table_horizontal_code('recent_lap') }}
-    {% if configuration.vertical_previous_laps %}
+
+    {% if configuration.previous_laps_table_vertical %}
         {{ macro_table_vertical_code('previous_laps') }}
     {% else %}
         {{ macro_table_horizontal_code('previous_laps') }}
     {% endif %}
+
+    {% if configuration.charging_table_vertical %}
+        {{ macro_table_vertical_code('charging_processes') }}
+    {% else %}
+        {{ macro_table_horizontal_code('charging_processes') }}
+    {% endif %}
+
 
     $(document).ready(function () {
         console.log("ready")
@@ -92,6 +101,10 @@
         var previousLaps = {{ previous_laps.__root__ | tojson }};
         {{ macro_table_update_function('recent_lap', '[recentLap]') }}
         {{ macro_table_update_function('previous_laps', 'previousLaps') }}
+
+        var charging_processes = {{ charging_processes.__root__ | tojson }};
+        {{ macro_table_update_function('charging_processes', 'charging_processes') }}
+
     });
 </script>
 

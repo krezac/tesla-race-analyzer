@@ -27,7 +27,12 @@
 {{ macro_table_html('previous_laps', 'previous laps') }}
 <script>
     {{ macro_table_horizontal_code('recent_lap') }}
-    {{ macro_table_vertical_code('previous_laps') }}
+
+    {% if configuration.previous_laps_table_vertical %}
+        {{ macro_table_vertical_code('previous_laps') }}
+    {% else %}
+        {{ macro_table_horizontal_code('previous_laps') }}
+    {% endif %}
 
     $(document).ready(function () {
 

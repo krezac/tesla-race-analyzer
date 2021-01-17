@@ -41,11 +41,22 @@
 
 {{ macro_table_html('recent_lap', 'recent lap') }}
 {{ macro_table_html('previous_laps', 'previous laps') }}
-
+{{ macro_table_html('charging_processes', 'charging processes') }}
 
 <script>
     {{ macro_table_horizontal_code('recent_lap') }}
-    {{ macro_table_vertical_code('previous_laps') }}
+
+    {% if configuration.previous_laps_table_vertical %}
+        {{ macro_table_vertical_code('previous_laps') }}
+    {% else %}
+        {{ macro_table_horizontal_code('previous_laps') }}
+    {% endif %}
+
+    {% if configuration.charging_table_vertical %}
+        {{ macro_table_vertical_code('charging_processes') }}
+    {% else %}
+        {{ macro_table_horizontal_code('charging_processes') }}
+    {% endif %}
 
     $(document).ready(function () {
         {{ macro_map_code('car_map', '0', '0') }}
@@ -71,9 +82,18 @@
             {{ macro_table_update_function('previous_laps', '[]') }}
         }
 
+        function chargingsUpdateSuccess(data) {
+            {{ macro_table_update_function('charging_processes', 'data') }}
+        }
+
+        function chargingsUpdateFailure() {
+            {{ macro_table_update_function('charging_processes', '[]') }}
+        }
+
         // ajax calls
         {{ macro_ajax_call('car_status_update', get_status_url, 2000, 3, 'statusUpdateSuccess', 'statusUpdateFailure') }}
         {{ macro_ajax_call('car_laps_update', get_laps_url, 2000, 3, 'lapsUpdateSuccess', 'lapsUpdateFailure') }}
+    {{ macro_ajax_call('charging_processes_update', get_chargings_url, 2000, 3, 'chargingsUpdateSuccess', 'chargingsUpdateFailure') }}
 
     });
 </script>

@@ -99,9 +99,16 @@ def get_status():
     resp = data_processor.get_status_formatted()
     return Response(resp.json(), mimetype='application/json')
 
+
 @api_bp.route('/car/laps')
 def get_laps():
     resp = data_processor.get_laps_formatted()
+    return Response(resp.json(), mimetype='application/json')
+
+
+@api_bp.route('/car/chargings')
+def get_chargings():
+    resp = data_processor.get_charging_process_list_formatted()
     return Response(resp.json(), mimetype='application/json')
 
 
@@ -166,7 +173,12 @@ def get_list_of_fields():
         return get_status_raw()
     elif label_group == LabelFormatGroupEnum.FORECAST:
         return get_forecast_raw()
-    else:
+    elif label_group == LabelFormatGroupEnum.CHARGING.value:
+        chp_list = data_processor.get_charging_process_list_raw()
+        if chp_list:
+            lap = chp_list[-1].copy()
+            return _jsonify(lap)
+    elif label_group == LabelFormatGroupEnum.RECENT_LAP.value or label_group == LabelFormatGroupEnum.PREVIOUS_LAPS.value:
         laps = data_processor.get_laps_raw()
         if laps:
             lap = laps[-1].copy()
