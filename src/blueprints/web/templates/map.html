@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-
+{% from "macro_common.jinja2" import macro_common_headers with context %}
 {% from "macro_ajax.jinja2" import macro_ajax_call with context %}
 {% from "macro_map.jinja2" import macro_map_html with context %}
 {% from "macro_map.jinja2" import macro_map_code with context %}
@@ -8,19 +8,13 @@
 <html>
 <head>
 	<title>Car status and position</title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{ macro_common_headers() }}
 
-	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-<style>
-    body {
-        margin: 0;
-    }
-</style>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
 
 </head>
 <body>
@@ -31,7 +25,7 @@
 <script>
     $(document).ready(function () {
 
-        {{ macro_map_code('car_map') }}
+        {{ macro_map_code('car_map', '0', '0') }}
 
         function dataUpdateSuccess(data) {
           {{ macro_map_update_function('car_map', 'data.lat', 'data.lon', 'data.mapLabels') }}

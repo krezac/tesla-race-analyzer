@@ -9,5 +9,8 @@
   "start_radius": 0.1,
   "merge_from_lap": 1,
   "laps_merged": 1,
-  "show_previous_laps": 20
+  "show_previous_laps": 20,
+  "vertical_previous_laps": true,
+  "reverse_previous_laps": false
+
 }

@@ -52,4 +52,9 @@ def add_calculated_fields(*,
     current_item['time_to_end'] = pendulum.period(now_dt, end_time, True) \
         if now_dt <= end_time else pendulum.period(now_dt, now_dt, True)
 
+    current_item['slow_data_age'] = pendulum.period(current_item['slow_data_date'], now_dt) \
+        if current_item and 'slow_data_date' in current_item else None
+    current_item['fast_data_age'] = pendulum.period(current_item['fast_data_date'], now_dt) \
+        if current_item and 'fast_data_date' in current_item else None
+
     current_item['lap_number'] = lap_list[-1]['lap_id'] if lap_list else None

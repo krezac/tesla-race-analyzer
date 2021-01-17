@@ -14,6 +14,10 @@ web_bp = Blueprint(
 )
 
 
+def _get_admin_ui_url():
+    return url_for("admin.index") if current_user.is_active and current_user.is_authenticated else None
+
+
 @web_bp.route('/jwt_token', methods=['GET'])
 def jwt_token():
     access_token = create_access_token(identity='test', expires_delta=False)  # TODO make the tokens expire in real life
@@ -40,7 +44,8 @@ def logout():
 
 @web_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    return render_template("dashboard.html", get_status_url=url_for("api_bp.get_status"), get_laps_url=url_for("api_bp.get_laps"))
+    return render_template("dashboard.html", get_status_url=url_for("api_bp.get_status"),
+                           get_laps_url=url_for("api_bp.get_laps"), admin_ui_url=_get_admin_ui_url())
 
 
 @web_bp.route('/map', methods=['GET'])
@@ -50,7 +55,8 @@ def map():
 
 @web_bp.route('/laps', methods=['GET'])
 def laps():
-    return render_template("laps.html", get_status_url=url_for("api_bp.get_status"), get_laps_url=url_for("api_bp.get_laps"))
+    return render_template("laps.html", get_status_url=url_for("api_bp.get_status"),
+                           get_laps_url=url_for("api_bp.get_laps"), admin_ui_url=_get_admin_ui_url())
 
 
 @web_bp.route('/charts', methods=['GET'])
@@ -58,8 +64,8 @@ def charts():
     return render_template("charts.html")
 
 
-@web_bp.route('/static_dashboard', methods=['GET', 'POST'])
-def static_dashboard():
+@web_bp.route('/time_machine', methods=['GET', 'POST'])
+def time_machine():
     """
     this is to display specific point of time
     :return:
@@ -68,7 +74,10 @@ def static_dashboard():
     from src.data_processor.data_processor import data_processor
     form = StaticDashboardForm()
 
-    dt = pendulum.now(tz='utc')
+    dt_end = configuration.start_time.add(hours=configuration.hours)
+    dt_now = pendulum.now(tz='utc')
+    dt = dt_now if dt_now < dt_end else dt_end  # if analyzing after race end, initialize at end of interval
+
     if form.dt.data:
         dt = pendulum.from_timestamp(form.dt.data.timestamp()).in_tz('utc')
 
@@ -113,18 +122,19 @@ def static_dashboard():
         dt = configuration.start_time
 
     snapshot = data_processor.get_static_snapshot(dt)
-    if not form.dt.data or (snapshot.car_positions_raw and dt > snapshot.car_positions_raw[-1]['date']):
+    if not form.dt.data or (snapshot.car_positions_raw and dt > dt_end):
         form.dt.raw_data = None
-        form.dt.data = snapshot.car_positions_raw[-1]['date'].in_tz('local') if snapshot.car_positions_raw else dt.in_tz('local')
+        form.dt.data = dt_end.in_tz('local') if snapshot.car_positions_raw else dt.in_tz('local')
     else:
         form.dt.raw_data = None
         form.dt.data = dt.in_tz('local')
 
-    return render_template('static_dashboard.html', form=form, snapshot=snapshot,
+    return render_template('time_machine.html', form=form, snapshot=snapshot, configuration=configuration,
                            map_labels=snapshot.current_status_formatted.mapLabels.dict(),
                            status_labels=snapshot.current_status_formatted.statusLabels.dict(),
                            total_labels=snapshot.current_status_formatted.totalLabels.dict(),
                            forecast_labels=snapshot.current_status_formatted.forecastLabels.dict(),
                            recent_lap=snapshot.lap_list_formatted.recent.dict() if snapshot.lap_list_formatted.recent else None,
                            previous_laps=snapshot.lap_list_formatted.previous.dict(),
-                           post_url=url_for('web_bp.static_dashboard'))
+                           post_url=url_for('web_bp.time_machine'),
+                           admin_ui_url=_get_admin_ui_url())

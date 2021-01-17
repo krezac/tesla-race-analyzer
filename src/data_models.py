@@ -31,6 +31,8 @@ class Configuration(BaseModel):
     merge_from_lap: float
     laps_merged: float
     show_previous_laps: int
+    vertical_previous_laps: bool
+    reverse_previous_laps: bool
 
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
@@ -50,6 +52,7 @@ class JsonLabelItem(BaseModel):
 class JsonLabelGroup(BaseModel):
     """group of labels with title"""
     title: Optional[str]
+    record_id: Optional[str]
     items: List[JsonLabelItem]
 
 

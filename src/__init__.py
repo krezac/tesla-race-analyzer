@@ -12,7 +12,7 @@ from flask_admin import helpers as admin_helpers
 import logging
 import sys
 
-from src.admin.admin_views import MyAdminView, MyAuthView, MySecurityRedirectView, LabelFormatView, CalculatedFieldView
+from src.parent_views import MyRedirectView, MyRoleRequiredDataView, MyRoleRequiredCustomView
 from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
 
 # global config (meant to be read only besides the admin doing POST case) !!!
@@ -78,35 +78,35 @@ def create_app():
         #admin.add_link(MenuLink(name='Login', url='/security/login', category='Login'))
         #admin.add_link(MenuLink(name='Logout', url='/security/logout', category='Login'))
 
-        admin.add_view(MySecurityRedirectView(url_key='web_bp.dashboard', name="Dashboard", endpoint="ui_dashboard",
-                                              category="Go to UI"))
-        admin.add_view(MySecurityRedirectView(url_key='web_bp.map', name="Map", endpoint="ui_map",
-                                              category="Go to UI"))
-        admin.add_view(MySecurityRedirectView(url_key='web_bp.laps', name="Laps", endpoint="ui_laps",
-                                              category="Go to UI"))
-        admin.add_view(MySecurityRedirectView(url_key='web_bp.static_dashboard', name="Browse history dashboard", endpoint="ui_static_dashboard",
-                                              category="Go to UI"))
+        admin.add_view(MyRedirectView(target_endpoint='web_bp.dashboard', name="Dashboard",
+                                      endpoint="ui_dashboard", category="Go to UI"))
+        admin.add_view(MyRedirectView(target_endpoint='web_bp.map', name="Map",
+                                      endpoint="ui_map", category="Go to UI"))
+        admin.add_view(MyRedirectView(target_endpoint='web_bp.laps', name="Laps",
+                                      endpoint="ui_laps", category="Go to UI"))
+        admin.add_view(MyRedirectView(target_endpoint='web_bp.time_machine', name="Time Machine",
+                                      endpoint="ui_time_machine", category="Go to UI"))
 
-        admin.add_view(MyAdminView(Driver, db.session, category="Drivers"))
-        admin.add_view(MyAdminView(DriverChange, db.session, category="Drivers"))
-        admin.add_view(MyAdminView(FieldScope, db.session, category="Calculated Fields"))
-        admin.add_view(CalculatedFieldView(CalculatedField, db.session, category="Calculated Fields"))
-        admin.add_view(MyAdminView(LabelGroup, db.session, category="Formatted Labels"))
-        admin.add_view(LabelFormatView(LabelFormat, db.session, category="Formatted Labels"))
-        admin.add_view(MyAdminView(User, db.session, category="Profile"))
-        admin.add_view(MyAdminView(Role, db.session, category="Profile"))
+        admin.add_view(MyRoleRequiredDataView('admin', Driver, db.session, category="Drivers"))
+        admin.add_view(MyRoleRequiredDataView('operator', DriverChange, db.session, category="Drivers"))
+        admin.add_view(MyRoleRequiredDataView('admin', FieldScope, db.session, category="Calculated Fields"))
+        admin.add_view(MyRoleRequiredDataView('admin', CalculatedField, db.session, category="Calculated Fields"))
+        admin.add_view(MyRoleRequiredDataView('admin', LabelGroup, db.session, category="Formatted Labels"))
+        admin.add_view(MyRoleRequiredDataView('admin', LabelFormat, db.session, category="Formatted Labels"))
+        admin.add_view(MyRoleRequiredDataView('admin', User, db.session, category="Profile"))
+        admin.add_view(MyRoleRequiredDataView('admin', Role, db.session, category="Profile"))
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView
 
-        admin.add_view(MyTestCalculatedFieldView(name="Test custom field", endpoint="test_calculated_field",
+        admin.add_view(MyTestCalculatedFieldView('data', name="Test custom field", endpoint="test_calculated_field",
                                                  category="Calculated Fields"))
-        admin.add_view(MyTestLabelFormatTestView(name="Test custom label", endpoint="test_label_format",
+        admin.add_view(MyTestLabelFormatTestView('data', name="Test custom label", endpoint="test_label_format",
                                                  category="Formatted Labels"))
 
-        admin.add_view(MySecurityRedirectView(url_key='security.login', name="Login", endpoint="sec_login",
-                                              category="Profile"))
-        admin.add_view(MySecurityRedirectView(url_key='security.logout', name="Logout", endpoint="sec_logout",
-                                              category="Profile"))
+        admin.add_view(MyRedirectView(target_endpoint='security.login', name="Login",
+                                      endpoint="sec_login", category="Profile"))
+        admin.add_view(MyRedirectView(target_endpoint='security.logout', name="Logout",
+                                      endpoint="sec_logout", category="Profile"))
 
         # Using the user_claims_loader, we can specify a method that will be
         # called when creating access tokens, and add these claims to the said
@@ -133,16 +133,25 @@ def create_app():
             db.create_all()
 
             # Create the Roles "admin" and "end-user" -- unless they already exist
-            user_datastore.find_or_create_role(name='admin', description='Administrator')
-            user_datastore.find_or_create_role(name='api', description='API service role')
+            user_datastore.find_or_create_role(name='admin', description='Administrator (change configuration)')
+            user_datastore.find_or_create_role(name='data', description='Raw and historical data access')
+            user_datastore.find_or_create_role(name='operator', description='Store info during race (driver changes)')
 
             if not user_datastore.find_user(email="admin@example.com"):
                 user_datastore.create_user(email="admin@example.com", password=hash_password("password"))
+            if not user_datastore.find_user(email="data@example.com"):
+                user_datastore.create_user(email="data@example.com", password=hash_password("password"))
+            if not user_datastore.find_user(email="operator@example.com"):
+                user_datastore.create_user(email="operator@example.com", password=hash_password("password"))
             # Commit any database changes; the User and Roles must exist before we can add a Role to the User
             db.session.commit()
 
             # Assign roles. Again, commit any database changes.
             user_datastore.add_role_to_user('admin@example.com', 'admin')
+            user_datastore.add_role_to_user('admin@example.com', 'data')
+            user_datastore.add_role_to_user('admin@example.com', 'operator')
+            user_datastore.add_role_to_user('data@example.com', 'data')
+            user_datastore.add_role_to_user('operator@example.com', 'operator')
             db.session.commit()
 
             # populate code tables

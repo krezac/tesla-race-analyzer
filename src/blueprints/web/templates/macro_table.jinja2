@@ -1,4 +1,4 @@
-{% macro  macro_horizontal_table_style(name) %} {# TODO add name to the elements #}
+{% macro  macro_table_style(name) %} {# TODO add name to the elements #}
     .map_column {
         float: left;
         /* width: 50%; */
@@ -111,9 +111,9 @@
 {% endmacro %}
 
 
-{% macro  macro_horizontal_table_html(name, title) %}
+{% macro  macro_table_html(name, title) %}
     <div id="{{ name }}_table_title_div" class="section_title">{{ title }}</div>
-    <div style="width: 100%;overflow-x: auto"> <!-- was scroll -->
+    <div style="width: 100%;overflow-x: scroll"> <!-- was scroll -->
         <div id="{{ name }}_table_inner_div" class="divTable minimalistBlack">
             <div class="divTableHeading">
                 <div class="divTableRow">
@@ -129,7 +129,7 @@
     </div>
 {% endmacro %}
 
-{% macro  macro_horizontal_table_code(name) %}
+{% macro  macro_table_horizontal_code(name) %}
     function {{ name }}_buildTable(data) {
         var table_id = "{{ name }}_table_inner_div";
         var title_id = "{{ name }}_table_title_div";
@@ -145,12 +145,14 @@
 
         $("#" + title_id).html(data[0].title);
 
+        $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead"></div>`);
         data[0].items.forEach(function (item, index) {
             $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead">${item.label}</div>`);
         });
 
         data.forEach(function (data_row, index) {
             $("#" + table_id + " .divTableBody").append(`<div class="divTableRow"></div>`);
+            $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${data_row.record_id}</div>`);
             data_row.items.forEach(function (item, index) {
                $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${item.value}</div>`);
             });
@@ -159,6 +161,53 @@
 
 {% endmacro %}
 
-{% macro  macro_horizontal_table_update_function(name, data_var) %}
+{% macro  macro_table_vertical_code(name) %}
+    function {{ name }}_buildTable(data) {
+        var table_id = "{{ name }}_table_inner_div";
+        var title_id = "{{ name }}_table_title_div";
+        var tableBody = document.getElementById(table_id);
+        var header_data = data[0];
+
+        $("#" + table_id + " .divTableHeading .divTableRow").html('');
+        $("#" + table_id + " .divTableBody").html('');
+
+        if (!data) {
+            return;
+        }
+
+        $("#" + title_id).html(data[0].title);
+
+        // create first (empty) cell
+        $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead"></div>`);
+        data.forEach(function (d, index) {
+            $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead">${d.record_id}</div>`);
+        });
+
+        // iterate over fields, not data first
+        data[0].items.forEach(function (item, item_index) {
+            $("#" + table_id + " .divTableBody").append(`<div class="divTableRow"></div>`);
+            $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${item.label}</div>`);
+
+            data.forEach(function (data_row, row_index) {
+               $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${data_row.items[item_index].value}</div>`);
+            });
+        });
+
+
+
+{#            $("#" + table_id + " .divTableHeading .divTableRow").append(`<div class="divTableHead">${item.label}</div>`);#}
+{##}
+{#        data.forEach(function (data_row, index) {#}
+{#            $("#" + table_id + " .divTableBody").append(`<div class="divTableRow"></div>`);#}
+{#            data_row.items.forEach(function (item, index) {#}
+{#               $("#" + table_id + " .divTableBody .divTableRow:last-child").append(`<div class="divTableCell">${item.value}</div>`);#}
+{#            });#}
+{#        });#}
+
+    }
+
+{% endmacro %}
+
+{% macro  macro_table_update_function(name, data_var) %}
     {{ name }}_buildTable({{ data_var }});
 {% endmacro %}

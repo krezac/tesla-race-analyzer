@@ -1,39 +1,28 @@
 <!DOCTYPE html>
 
+{% from "macro_common.jinja2" import macro_common_headers with context %}
+{% from "macro_common.jinja2" import macro_common_footer with context %}
 {% from "macro_ajax.jinja2" import macro_ajax_call with context %}
 {% from "macro_map.jinja2" import macro_map_html with context %}
 {% from "macro_map.jinja2" import macro_map_code with context %}
 {% from "macro_map.jinja2" import macro_map_update_function with context %}
 {% from "macro_label_group.jinja2" import macro_label_group_html with context %}
 {% from "macro_label_group.jinja2" import macro_label_group_update_function with context %}
-{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_style with context %}
-{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_html with context %}
-{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_code with context %}
-{% from "macro_horizontal_table.jinja2" import macro_horizontal_table_update_function with context %}
+{% from "macro_table.jinja2" import macro_table_style with context %}
+{% from "macro_table.jinja2" import macro_table_html with context %}
+{% from "macro_table.jinja2" import macro_table_horizontal_code with context %}
+{% from "macro_table.jinja2" import macro_table_vertical_code with context %}
+{% from "macro_table.jinja2" import macro_table_update_function with context %}
 <html>
 <head>
 
     <title>{{ title or "Tesla Data Source Dashboard" }}</title>
 
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico"/>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-          crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-            crossorigin=""></script>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
-            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-
+    {{ macro_common_headers() }}
 
     <style>
-        {{ macro_horizontal_table_style('???') }}
+        {{ macro_table_style('???') }}
     </style>
-
 </head>
 <body>
 <div>
@@ -71,25 +60,17 @@
     </div>
 </div>
 
-{{ macro_horizontal_table_html('recent_lap', 'recent lap') }}
-{{ macro_horizontal_table_html('previous_laps', 'previous laps') }}
+{{ macro_table_html('recent_lap', 'recent lap') }}
+{{ macro_table_html('previous_laps', 'previous laps') }}
 
 
 <script>
-    function getStatusText(car_status_labels) {
-        statusText = "";
-        if (car_status_labels.title) {
-            statusText += "<B>" + car_status_labels.title + "</b><br/>";
-        }
-        // TODO render title
-        car_status_labels.items.forEach(function (item, index) {
-            statusText += `<b>${item.label}</b>: ${item.value}<br/>`;
-        });
-        return statusText;
-    }
-
-    {{ macro_horizontal_table_code('recent_lap') }}
-    {{ macro_horizontal_table_code('previous_laps') }}
+    {{ macro_table_horizontal_code('recent_lap') }}
+    {% if configuration.vertical_previous_laps %}
+        {{ macro_table_vertical_code('previous_laps') }}
+    {% else %}
+        {{ macro_table_horizontal_code('previous_laps') }}
+    {% endif %}
 
     $(document).ready(function () {
         console.log("ready")
@@ -109,12 +90,11 @@
 
         var recentLap = {{ recent_lap | tojson }};
         var previousLaps = {{ previous_laps.__root__ | tojson }};
-        {{ macro_horizontal_table_update_function('recent_lap', '[recentLap]') }}
-        {{ macro_horizontal_table_update_function('previous_laps', 'previousLaps') }}
+        {{ macro_table_update_function('recent_lap', '[recentLap]') }}
+        {{ macro_table_update_function('previous_laps', 'previousLaps') }}
     });
 </script>
 
-<hr/>
-Source code available at <a href="https://github.com/krezac/tesla-race-analyzer" target="_blank">https://github.com/krezac/tesla-race-analyzer</a>
+{{ macro_common_footer(admin_ui_url) }}
 </body>
 </html>
