@@ -183,21 +183,23 @@ def create_app():
             user_datastore.find_or_create_role(name='admin', description='Administrator (change configuration)')
             user_datastore.find_or_create_role(name='data', description='Raw and historical data access')
             user_datastore.find_or_create_role(name='operator', description='Store info during race (driver changes)')
+            db.session.commit()
 
             admin_email = getenv('TRAN_ADMIN_EMAIL')
             admin_password = getenv('TRAN_ADMIN_PASSWORD')
             if admin_email and admin_password:
-                print("***********************************************")
-            if not user_datastore.find_user(email=admin_email):
-                user_datastore.create_user(email=admin_email, password=hash_password(admin_password))
-            # Commit any database changes; the User and Roles must exist before we can add a Role to the User
-            db.session.commit()
+                logger.warning(f"Admin user ({admin_email}) and password defined in environment. Consider removing them")
+                if not user_datastore.find_user(email=admin_email):
+                    logger.info(f"Creating admin user as defined in environment: {admin_email}")
+                    user_datastore.create_user(email=admin_email, password=hash_password(admin_password))
+                # Commit any database changes; the User and Roles must exist before we can add a Role to the User
+                db.session.commit()
 
-            # Assign roles. Again, commit any database changes.
-            user_datastore.add_role_to_user(admin_email, 'admin')
-            user_datastore.add_role_to_user(admin_email, 'data')
-            user_datastore.add_role_to_user(admin_email, 'operator')
-            db.session.commit()
+                # Assign roles. Again, commit any database changes.
+                user_datastore.add_role_to_user(admin_email, 'admin')
+                user_datastore.add_role_to_user(admin_email, 'data')
+                user_datastore.add_role_to_user(admin_email, 'operator')
+                db.session.commit()
 
             # populate code tables
             # label groups

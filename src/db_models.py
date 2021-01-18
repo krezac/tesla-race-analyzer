@@ -25,8 +25,6 @@ class Driver(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False, unique=True)
-    #driver_changes = db.relationship('DriverChange', backref='driver', lazy=True, foreign_keys=['DriverChange.driver_id'])
-    #copilot_changes = db.relationship('DriverChange', backref='copilot', lazy=True, foreign_keys=['DriverChange.copilot_id'])
 
     def __repr__(self):
         return self.name
@@ -36,12 +34,10 @@ class DriverChange(db.Model):
     __tablename__ = 'driver_changes'
 
     id = db.Column(db.Integer, primary_key=True)
-    driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False)
-    copilot_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=True)
+    driver = db.Column(db.String, nullable=False)  # note these are no foreign keys
+    copilot = db.Column(db.String, nullable=True)  # note these are no foreign keys
     valid_from = db.Column(db.DateTime, nullable=False, default=pendulum.now(tz='utc'))
     valid_to = db.Column(db.DateTime, nullable=True)
-    driver = db.relationship("Driver", foreign_keys='DriverChange.driver_id')
-    copilot = db.relationship("Driver", foreign_keys='DriverChange.copilot_id')
 
 
 class LabelGroup(db.Model):
