@@ -40,6 +40,10 @@ class Configuration(BaseModel):
     forecast_exclude_first_laps: int
     forecast_use_last_laps: int
 
+    update_run_background: bool
+    update_status_seconds: int
+    update_laps_seconds: int
+
 
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):

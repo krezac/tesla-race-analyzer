@@ -7,13 +7,17 @@ from sqlalchemy import UniqueConstraint
 from typing import Optional
 from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
 
+
 class User(db.Model, fsqla.FsUserMixin):
-    pass
+    def __repr__(self):
+        return self.email
 
 
 # Define the User data-model.
 class Role(db.Model, fsqla.FsRoleMixin):
-    pass
+
+    def __repr__(self):
+        return self.name
 
 
 class Driver(db.Model):

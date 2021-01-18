@@ -10,10 +10,11 @@ class AppConfig:
     """ application specific values """
     CONFIG_DIR = 'etc'
     CONFIG_FILE = 'config.json'
+    BACKGROUND_JOB_BASE = environ.get("TRAN_BACKGROUND_JOB_BASE", 'http://127.0.0.1:80/api/_internal')
 
     """Set Flask config variables."""
 
-    FLASK_APP = 'wsgi.py'
+    FLASK_APP = 'tran.py'
     FLASK_ENV = 'development'
     TESTING = True
     # Generate a nice key using secrets.token_urlsafe()
@@ -48,6 +49,9 @@ class AppConfig:
     # Specifies if Flask-Security should create a user registration endpoint. (creates /register endpoint)
     # TODO remember to disable on prod once users are configured
     SECURITY_REGISTERABLE = environ.get("SECURITY_REGISTERABLE", False)
+
+    # allow change password (/change)
+    SECURITY_CHANGEABLE = environ.get("SECURITY_CHANGEABLE", False)
 
     SECURITY_POST_LOGIN_VIEW = '../admin/'
 

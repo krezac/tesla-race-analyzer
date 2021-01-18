@@ -1,27 +1,18 @@
-# Build stage:
-FROM python:3.8-slim-buster as build-image
-COPY . /app
-WORKDIR /app
+# pipenv gather image
+FROM tiangolo/uwsgi-nginx:python3.8  as build-image
 
-#RUN apk add --no-cache --virtual build-deps gcc python3-dev musl-dev && \
-#    apk add --no-cache postgresql-dev
+COPY Pipfile* /app/
+WORKDIR /app
 
 RUN pip3 install pipenv
 RUN pipenv install --system --deploy --ignore-pipfile
 
-##########################################################################################
+# actual run image
+FROM tiangolo/uwsgi-nginx:python3.8
 
-# "Default" stage:
-FROM python:3.8-slim-buster
-
-RUN pip3 install flask SQLAlchemy
-
-# Copy generated site-packages from former stage:
+RUN pip3 install flask SQLAlchemy bcrypt
 COPY --from=build-image /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 
+COPY anginx.conf /etc/nginx/conf.d/
 COPY . /app
 WORKDIR /app
-
-EXPOSE 5000
-
-CMD flask run --host=0.0.0.0

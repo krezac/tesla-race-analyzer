@@ -53,7 +53,7 @@ def add_calculated_fields(*,
     time_since_start = now_dt - start_time if now_dt > start_time else pendulum.period(now_dt, now_dt)
     time_to_end = end_time - now_dt if now_dt < end_time else pendulum.period(now_dt, now_dt)
     distance_since_start = \
-        current_status['distance'] if current_status and ['distance'] in current_status and current_status['distance'] is not None else 0.0
+        current_status['distance'] if current_status and 'distance' in current_status and current_status['distance'] is not None else 0.0
 
     # print(f"from start: {time_since_start.in_hours()}, to end: {time_to_end.in_hours()}, dist: {distance_since_start}")
 
@@ -118,8 +118,24 @@ def add_calculated_fields(*,
     # add best lap metric (best full avg speed
     best_lap_id = None
     best_avg_speed = 0
+    best_full_duration = time_since_start
+    best_lap_distance = 0
     for lap in car_laps:
         if 'full_avg_speed' in lap and lap['full_avg_speed'] > best_avg_speed:
             best_avg_speed = lap['full_avg_speed']
             best_lap_id = lap['lap_id']
+            best_full_duration = lap['full_duration']
+            best_lap_distance = lap['distance']
     current_item['best_lap'] = best_lap_id
+
+    best_full_laps_remaining = int(time_to_forecast / best_full_duration)
+    # print(f"laps to go: {fullLapsRemaining}")
+    best_remaining_last_lap_time = time_to_forecast - best_full_laps_remaining * best_full_duration  # time left after max possible full laps
+    # print(f"last lap time: {remaining_last_lap_time}")
+    best_coef = best_remaining_last_lap_time / best_full_duration
+    # print(f"coef: {coef}")
+    best_last_lap_distance = best_lap_distance * best_coef
+    # print(f"last lap distance: {last_lap_distance}")
+
+    best_estimated_distance = distance_since_start + unfinished_lap_remaining_distance + best_full_laps_remaining * best_lap_distance + best_last_lap_distance
+    current_item['best_estimated_distance'] = best_estimated_distance

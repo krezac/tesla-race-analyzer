@@ -1,5 +1,5 @@
 import pendulum
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 from pydantic import BaseModel
 import src.data_source.teslamate
 from src.data_processor.labels import generate_labels
@@ -492,14 +492,15 @@ class DataProcessor(BaseModel):
                                                                d, dt)
         return JsonLabelGroup(title=db_label_group.title, items=formatted_items, record_id=record_id)
 
-    def _load_status_formatted(self, status: Dict[str, Any], dt: Optional[pendulum.DateTime]) -> JsonStatusResponse:
+    def _load_status_formatted(self, status: Dict[str, Any], total: Dict[str, Any], forecast: Dict[str, Any],
+                               dt: Optional[pendulum.DateTime]) -> JsonStatusResponse:
         return JsonStatusResponse(
             lat=status['latitude'],
             lon=status['longitude'],
             mapLabels=self._format_dict(status, LabelFormatGroupEnum.MAP, dt),
             statusLabels=self._format_dict(status, LabelFormatGroupEnum.STATUS, dt),
-            totalLabels=self._format_dict(self.total_raw, LabelFormatGroupEnum.TOTAL, dt),  # TODO partial hack
-            forecastLabels=self._format_dict(status, LabelFormatGroupEnum.FORECAST, dt),
+            totalLabels=self._format_dict(total, LabelFormatGroupEnum.TOTAL, dt),  # TODO partial hack
+            forecastLabels=self._format_dict(forecast, LabelFormatGroupEnum.FORECAST, dt),
         )
 
     def _load_laps_formatted(self, laps: List[Dict[str, Any]], dt: Optional[pendulum.DateTime]) -> JsonLapsResponse:
@@ -558,7 +559,13 @@ class DataProcessor(BaseModel):
                                        forecast=self.forecast_raw,
                                        configuration=configuration, )
         self.current_status_raw = status
-        self.current_status_formatted = self._load_status_formatted(self.current_status_raw, now)
+
+        # just to make sure all data exist before rendering if no bg jobs are allowed
+        if not configuration or not self.total_raw or not self.forecast_raw:
+            self.update_positions_laps_forecast()
+
+        self.current_status_formatted = self._load_status_formatted(self.current_status_raw, self.total_raw,
+                                                                    self.forecast_raw, now)
 
     @function_timer()
     def update_positions_laps_forecast(self):
@@ -566,6 +573,7 @@ class DataProcessor(BaseModel):
         update rest of the data (besides status. May be called from background job
         """
         from src import configuration
+
         now = pendulum.now(tz='utc')
         dt_end = configuration.start_time.add(hours=configuration.hours)
         positions = self._load_positions(
@@ -593,7 +601,6 @@ class DataProcessor(BaseModel):
             forecast=self.forecast_raw,
             configuration=configuration,
             )
-        self.lap_list_formatted = self._load_laps_formatted(self.lap_list_raw, now)
 
         # load charging
         self.charging_process_list_raw = self._load_charging_processes(
@@ -607,8 +614,6 @@ class DataProcessor(BaseModel):
             forecast=self.forecast_raw,
             configuration=configuration,
             )
-        self.charging_process_list_formatted = \
-            self._load_charging_process_list_formatted(self.charging_process_list_raw, now)
 
         # load total
         self.total_raw = self._load_total(
@@ -622,10 +627,8 @@ class DataProcessor(BaseModel):
             forecast=self.forecast_raw,
             configuration=configuration,
             )
-        self.total_formatted = self._format_dict(self.total_raw, LabelFormatGroupEnum.TOTAL, now)
 
         # load forecast
-        forecast = {}
         self.forecast_raw = self._load_forecast(
             now,
             initial_status=self.initial_status_raw,
@@ -637,6 +640,16 @@ class DataProcessor(BaseModel):
             _forecast=self.forecast_raw,
             configuration=configuration,
             )
+
+        # just to make sure all data exist before rendering if no bg jobs are allowed
+        if not configuration or not self.current_status_raw:
+            self.update_status
+
+        # generate the formatted form after, when all are updated
+        self.lap_list_formatted = self._load_laps_formatted(self.lap_list_raw, now)
+        self.charging_process_list_formatted = \
+            self._load_charging_process_list_formatted(self.charging_process_list_raw, now)
+        self.total_formatted = self._format_dict(self.total_raw, LabelFormatGroupEnum.TOTAL, now)
         self.forecast_formatted = self._format_dict(self.forecast_raw, LabelFormatGroupEnum.FORECAST, now)
 
     ###########
@@ -648,7 +661,8 @@ class DataProcessor(BaseModel):
         get current status raw
         :return: retrieved data
         """
-        if not self.current_status_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.current_status_raw:
             self.update_status()
         return self.current_status_raw
 
@@ -657,7 +671,8 @@ class DataProcessor(BaseModel):
         get current status raw
         :return: retrieved data
         """
-        if not self.current_status_formatted:
+        from src import configuration
+        if not configuration.update_run_background or not self.current_status_formatted:
             self.update_status()
         out = self.current_status_formatted
         out.totalLabels = self.total_formatted  # TODO this is not nice hack
@@ -668,7 +683,8 @@ class DataProcessor(BaseModel):
         get current positions raw
         :return: retrieved data
         """
-        if not self.car_positions_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.car_positions_raw:
             self.update_positions_laps_forecast()
         return self.car_positions_raw
 
@@ -677,7 +693,8 @@ class DataProcessor(BaseModel):
         get laps raw form
         :return: retrieved data
         """
-        if not self.lap_list_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.lap_list_raw:
             self.update_positions_laps_forecast()
         return self.lap_list_raw
 
@@ -686,7 +703,8 @@ class DataProcessor(BaseModel):
         get laps formatted for UI
         :return: retrieved data
         """
-        if not self.lap_list_formatted:
+        from src import configuration
+        if not configuration.update_run_background or not self.lap_list_formatted:
             self.update_positions_laps_forecast()
         return self.lap_list_formatted
 
@@ -695,7 +713,8 @@ class DataProcessor(BaseModel):
         get total raw
         :return: retrieved data
         """
-        if not self.total_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.total_raw:
             self.update_positions_laps_forecast()
         return self.total_raw
 
@@ -704,7 +723,8 @@ class DataProcessor(BaseModel):
         get total formatted
         :return: retrieved data
         """
-        if not self.total_formatted:
+        from src import configuration
+        if not configuration.update_run_background or not self.total_formatted:
             self.update_positions_laps_forecast()
         return self.total_formatted
 
@@ -713,7 +733,8 @@ class DataProcessor(BaseModel):
         get charging processes raw
         :return: retrieved data
         """
-        if not self.charging_process_list_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.charging_process_list_raw:
             self.update_positions_laps_forecast()
         return self.charging_process_list_raw
 
@@ -722,7 +743,8 @@ class DataProcessor(BaseModel):
         get charging processes formatted
         :return: retrieved data
         """
-        if not self.charging_process_list_formatted:
+        from src import configuration
+        if not configuration.update_run_background or not self.charging_process_list_formatted:
             self.update_positions_laps_forecast()
         return self.charging_process_list_formatted
 
@@ -731,7 +753,8 @@ class DataProcessor(BaseModel):
         get forecast raw
         :return: retrieved data
         """
-        if not self.forecast_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.forecast_raw:
             self.update_positions_laps_forecast()
         return self.forecast_raw
 
@@ -740,14 +763,16 @@ class DataProcessor(BaseModel):
         get forecast formatted
         :return: retrieved data
         """
-        if not self.forecast_formatted:
+        from src import configuration
+        if not configuration.update_run_background or not self.forecast_formatted:
             self.update_positions_laps_forecast()
         return self.forecast_formatted
 
     # TODO add charging in better way
     def get_car_chargings(self, lap_id: int):
 
-        if not self.lap_list_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.lap_list_raw:
             self.update_positions_laps_forecast()
 
         lap = self.lap_list_raw[lap_id]
@@ -760,6 +785,7 @@ class DataProcessor(BaseModel):
     # static snapshot for datetime #
     ################################
 
+    @function_timer()
     def get_static_snapshot(self, dt_end: pendulum.DateTime) -> JsonStaticSnapshot:
         """
         Get system snapshot for specific date and time
@@ -841,7 +867,9 @@ class DataProcessor(BaseModel):
                 configuration=configuration,
                 )
 
-        snapshot.current_status_formatted = self._load_status_formatted(snapshot.current_status_raw, dt_end)
+        snapshot.current_status_formatted = self._load_status_formatted(snapshot.current_status_raw,
+                                                                        snapshot.total_raw,
+                                                                        snapshot.forecast_raw, dt_end)
         snapshot.lap_list_formatted = self._load_laps_formatted(snapshot.lap_list_raw, dt_end)
         snapshot.charging_process_list_formatted = self._load_charging_process_list_formatted(
             snapshot.charging_process_list_raw, dt_end)
@@ -892,7 +920,8 @@ class DataProcessor(BaseModel):
         from src.db_models import CalculatedField
         from src import configuration  # imports global configuration
 
-        if not self.current_status_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.current_status_raw:
             self.update_status()
 
         field = CalculatedField(
@@ -919,7 +948,8 @@ class DataProcessor(BaseModel):
         from src.db_models import LabelFormat
         from src import configuration  # imports global configuration
 
-        if not self.current_status_raw:
+        from src import configuration
+        if not configuration.update_run_background or not self.current_status_raw:
             self.update_status()
 
         label_format = LabelFormat(field=field, label=label, format_function=format_fn, format=format_str, unit=unit,
@@ -930,6 +960,7 @@ class DataProcessor(BaseModel):
         formatted_items = generate_labels([label_format],
                                           self.current_status_raw, pendulum.now(tz='utc'))
         return formatted_items
+
 
 # let's have just one singleton to be used
 data_processor = DataProcessor()

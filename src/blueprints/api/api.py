@@ -89,6 +89,21 @@ def _jsonify(data):
         out = json.dumps(data, default=str)
         return Response(out, mimetype='application/json')
 
+########################################
+# activate update for background tasks #
+########################################
+@api_bp.route('/_internal/update_status')
+# @jwt_ex_role_required('megasuperadmin')  # @jwt_required
+def update_status():
+    data_processor.update_status()
+    return "Success"
+
+@api_bp.route('/_internal/update_laps')
+# @jwt_ex_role_required('megasuperadmin')  # @jwt_required
+def update_laps():
+    data_processor.update_positions_laps_forecast()
+    return "Success"
+
 
 ################################################
 # functions to get data for UI (no protection) #

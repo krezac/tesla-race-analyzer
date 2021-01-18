@@ -1,5 +1,5 @@
 """Initialize Flask app."""
-from os import path
+from os import path, getenv
 from flask import Flask, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -11,12 +11,21 @@ from flask_admin import Admin
 from flask_admin import helpers as admin_helpers
 import logging
 import sys
+import requests
+import pendulum
+from apscheduler.schedulers.background import BackgroundScheduler
+
 
 from src.parent_views import MyRedirectView, MyRoleRequiredDataView, MyRoleRequiredCustomView
 from src.enums import CalculatedFieldScopeEnum, LabelFormatGroupEnum
+from src.utils import function_timer_block
+
+import logging
+logger = logging.getLogger(__name__)
 
 # global config (meant to be read only besides the admin doing POST case) !!!
 
+scheduler = BackgroundScheduler()
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -24,6 +33,11 @@ admin = Admin(name='TRAn Admin', template_mode='bootstrap4')
 
 # Globally accessible libraries
 configuration: Configuration = None
+
+# note this is ugly hack to trigger background jobs as normal endpoints
+# URLs set from app.config later
+background_job_update_status_url: str = None
+background_job_update_laps_url: str = None
 
 
 def load_config(app: Flask):
@@ -52,6 +66,10 @@ def create_app():
 
         # load local config
         load_config(app)
+
+        global background_job_update_laps_url, background_job_update_laps_url
+        background_job_update_laps_url = app.config["BACKGROUND_JOB_BASE"] + '/update_status'
+        background_job_update_laps_url = app.config["BACKGROUND_JOB_BASE"] + '/update_laps'
 
         # flask-security-too
         # Define models
@@ -111,8 +129,31 @@ def create_app():
 
         admin.add_view(MyRedirectView(target_endpoint='security.login', name="Login",
                                       endpoint="sec_login", category="User"))
+        admin.add_view(MyRedirectView(target_endpoint='security.change_password', name="Change password",
+                                      endpoint="sec_change_password", category="User"))
         admin.add_view(MyRedirectView(target_endpoint='security.logout', name="Logout",
                                       endpoint="sec_logout", category="User"))
+
+        # register background jobs
+        def _update_car_status():
+            from src import configuration
+            if configuration.update_run_background and background_job_update_status_url:
+                logger.info("Updating car status by background job")
+                with function_timer_block('bg update status'):
+                    resp = requests.get(background_job_update_status_url)
+                    logger.info(f"{pendulum.now()}: {resp}")
+
+        def _update_car_laps():
+            from src import configuration
+            if configuration.update_run_background and background_job_update_laps_url:
+                logger.info("Updating car laps... by background job")
+                with function_timer_block('bg update laps'):
+                    resp = requests.get(background_job_update_laps_url)
+                    logger.info(f"{pendulum.now()}: {resp}")
+
+        scheduler.add_job(_update_car_status, 'interval', seconds=configuration.update_status_seconds)
+        scheduler.add_job(_update_car_laps, 'interval', seconds=configuration.update_laps_seconds)
+        scheduler.start()
 
         # Using the user_claims_loader, we can specify a method that will be
         # called when creating access tokens, and add these claims to the said
@@ -143,21 +184,19 @@ def create_app():
             user_datastore.find_or_create_role(name='data', description='Raw and historical data access')
             user_datastore.find_or_create_role(name='operator', description='Store info during race (driver changes)')
 
-            if not user_datastore.find_user(email="admin@example.com"):
-                user_datastore.create_user(email="admin@example.com", password=hash_password("password"))
-            if not user_datastore.find_user(email="data@example.com"):
-                user_datastore.create_user(email="data@example.com", password=hash_password("password"))
-            if not user_datastore.find_user(email="operator@example.com"):
-                user_datastore.create_user(email="operator@example.com", password=hash_password("password"))
+            admin_email = getenv('TRAN_ADMIN_EMAIL')
+            admin_password = getenv('TRAN_ADMIN_PASSWORD')
+            if admin_email and admin_password:
+                print("***********************************************")
+            if not user_datastore.find_user(email=admin_email):
+                user_datastore.create_user(email=admin_email, password=hash_password(admin_password))
             # Commit any database changes; the User and Roles must exist before we can add a Role to the User
             db.session.commit()
 
             # Assign roles. Again, commit any database changes.
-            user_datastore.add_role_to_user('admin@example.com', 'admin')
-            user_datastore.add_role_to_user('admin@example.com', 'data')
-            user_datastore.add_role_to_user('admin@example.com', 'operator')
-            user_datastore.add_role_to_user('data@example.com', 'data')
-            user_datastore.add_role_to_user('operator@example.com', 'operator')
+            user_datastore.add_role_to_user(admin_email, 'admin')
+            user_datastore.add_role_to_user(admin_email, 'data')
+            user_datastore.add_role_to_user(admin_email, 'operator')
             db.session.commit()
 
             # populate code tables

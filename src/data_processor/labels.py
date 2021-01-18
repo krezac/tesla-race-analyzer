@@ -53,7 +53,8 @@ def _format_value(raw_value, label_format, now_dt: pendulum.DateTime):
 
 def _generate_label(label_format, data: Dict[str, Any], now_dt: pendulum.DateTime) -> JsonLabelItem:
     if not data or label_format.field not in data or data[label_format.field] is None:
-        logger.error(f"field {label_format.field} does not exist in data_dict ({data}). Misconfiguration, please fix")
+        if data and label_format.field not in data:
+            logger.error(f"field {label_format.field} does not exist in data_dict ({data}). Misconfiguration, please fix")
         return JsonLabelItem(label=label_format.label, value=label_format.default)  # misconfiguration
     value = _format_value(data[label_format.field], label_format, now_dt)
     return JsonLabelItem(label=label_format.label, value=value)

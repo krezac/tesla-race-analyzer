@@ -78,3 +78,8 @@ def add_calculated_fields(*,
 
     current_item['lap_avg_speed'] = lap_avg_speed
     current_item['full_avg_speed'] = full_avg_speed
+
+    # try the magic
+    d = pendulum.Duration(hours=configuration.hours)
+    d += current_item['pit_duration']
+    current_item['total_using_lap'] = full_avg_speed * d.total_seconds() / 3600
