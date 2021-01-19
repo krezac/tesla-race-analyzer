@@ -3,10 +3,10 @@ from flask_admin import expose
 
 from src.blueprints.web.web_forms import StaticDashboardForm
 
-from src.admin.admin_views import MyAdminCustomView
+from src.parent_views import MyRoleRequiredCustomView
 
 
-class MyTestCalculatedFieldView(MyAdminCustomView):
+class MyTestCalculatedFieldView(MyRoleRequiredCustomView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         pass

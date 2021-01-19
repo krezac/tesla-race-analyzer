@@ -105,12 +105,11 @@ def create_app():
         admin.add_view(MyRedirectView(target_endpoint='web_bp.time_machine', name="Time Machine",
                                       endpoint="ui_time_machine", category="Go to UI"))
 
-        # TODO these are just placeholders
-        admin.add_view(MyRoleRequiredDataView('operator', DriverChange, db.session, category="Operator", endpoint="aaa"))
-        admin.add_view(MyRoleRequiredDataView('data', DriverChange, db.session, category="Data", endpoint="bbb"))
+        from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView
+        admin.add_view(MyRoleRequiredDataView('operator', Driver, db.session, category="Operator", endpoint="op_driver"))
+        admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
+                                        category="Operator"))
 
-
-        from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView
         admin.add_view(MyTestCalculatedFieldView('data', name="Calculated Field", endpoint="test_calculated_field",
                                                  category="Test custom"))
         admin.add_view(MyTestLabelFormatTestView('data', name="Formatted Label", endpoint="test_label_format",

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, TextAreaField, IntegerField
+from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField
 from wtforms.validators import DataRequired
 
 
@@ -17,3 +17,9 @@ class TestLabelFormatForm(FlaskForm):
     unit = StringField('Unit', validators=[])
     default = StringField('Default', validators=[], default='---')
     item_index = IntegerField('Item Index', validators=[DataRequired()], default=-1)
+
+
+class DriverChangeForm(FlaskForm):
+    driver = SelectField('Driver', validators=[DataRequired()])
+    copilot = SelectField('Copilot', validators=[])
+    save = SubmitField(label='Save')

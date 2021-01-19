@@ -1,0 +1,15 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  {{ super() }}
+  <div class="container">
+      <h1>Enter driver change</h1>
+      <form method="POST" action="{{ post_url }}">
+        {{ form.csrf_token }}
+        {{ form.driver.label }} {{ form.driver }}
+        {{ form.copilot.label }} {{ form.copilot }}
+        {{ form.save }}
+    </form>
+
+  </div>
+{% endblock %}

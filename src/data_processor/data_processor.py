@@ -52,13 +52,24 @@ class DataProcessor(BaseModel):
         """
         return src.data_source.teslamate.get_car_status(car_id, start_time)
 
+    def _set_driver_change(self, record, dt: pendulum.DateTime):
+        from src.db_models import DriverChange
+        driver_change = DriverChange.query.filter(
+            (DriverChange.valid_from <= dt) & ((DriverChange.valid_to >= dt) | (DriverChange.valid_to == None))
+        ).order_by(DriverChange.valid_from.desc()).first()
+        record['driver_name'] = driver_change.driver if driver_change else None
+        record['copilot_name'] = driver_change.copilot if driver_change else None
+
     @function_timer()
     def _load_status_raw(self, car_id: int, dt: pendulum.DateTime, *,
                          initial_status, _current_status=None, position_list, lap_list,
                          total, charging_process_list, forecast,
                          configuration: Configuration):
-        # update status by calculated fields
+
         status = src.data_source.teslamate.get_car_status(car_id, dt)
+        # add driver change
+        self._set_driver_change(status, dt)
+        # update status by calculated fields
         return self._enhance_status(status, dt,
                                     initial_status=initial_status,
                                     _current_status=status,
@@ -95,6 +106,9 @@ class DataProcessor(BaseModel):
                    configuration: Configuration):
         # TODO convert to finder
         laps = lap_analyzer.find_laps(configuration, positions, configuration.start_radius, 0, 0)
+        for lap in laps:
+            if 'lap_data' in lap and lap['lap_data']:
+                self._set_driver_change(lap, lap['lap_data'][0]['date'])
         laps = self._enhance_laps(laps, dt,
                                   initial_status=initial_status,
                                   current_status=current_status,
