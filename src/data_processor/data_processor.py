@@ -509,8 +509,8 @@ class DataProcessor(BaseModel):
     def _load_status_formatted(self, status: Dict[str, Any], total: Dict[str, Any], forecast: Dict[str, Any],
                                dt: Optional[pendulum.DateTime]) -> JsonStatusResponse:
         return JsonStatusResponse(
-            lat=status['latitude'],
-            lon=status['longitude'],
+            lat=status['latitude'] if 'latitude' in status else 0,
+            lon=status['longitude'] if 'longitude' in status else 0,
             mapLabels=self._format_dict(status, LabelFormatGroupEnum.MAP, dt),
             statusLabels=self._format_dict(status, LabelFormatGroupEnum.STATUS, dt),
             totalLabels=self._format_dict(total, LabelFormatGroupEnum.TOTAL, dt),  # TODO partial hack

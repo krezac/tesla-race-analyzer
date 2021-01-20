@@ -40,11 +40,25 @@ background_job_update_status_url: str = None
 background_job_update_laps_url: str = None
 
 
-def load_config(app: Flask):
+def load_config(new_configuration, overwrite_file):
     global configuration
-    p = path.join(app.config["CONFIG_DIR"], app.config["CONFIG_FILE"])
-    configuration = Configuration.parse_file(p)
-    configuration.post_process()
+    from flask import current_app
+    orig_path = path.join(current_app.config["CONFIG_DIR"], current_app.config["CONFIG_FILE"])
+
+    if new_configuration:
+        configuration = new_configuration
+        configuration.post_process()
+        if overwrite_file:
+            import shutil
+            new_path = orig_path[:-5] if orig_path.endswith(".json") else orig_path
+            new_path += "_" + pendulum.now(tz='utc').format('YYYY-MM-DD-HH-mm-ss') + ".json"
+            shutil.copy(orig_path, new_path)
+            with open(orig_path, "wt") as f:
+                f.write(configuration.json(indent=2))
+            configuration.json()
+    else:
+        configuration = Configuration.parse_file(orig_path)
+        configuration.post_process()
 
 
 def create_app():
@@ -65,7 +79,7 @@ def create_app():
         _migrate = Migrate(app, db)  # ?? Create Database Models using db.create_all()
 
         # load local config
-        load_config(app)
+        load_config(None, False)
 
         global background_job_update_laps_url, background_job_update_laps_url
         background_job_update_laps_url = app.config["BACKGROUND_JOB_BASE"] + '/update_status'
@@ -105,7 +119,8 @@ def create_app():
         admin.add_view(MyRedirectView(target_endpoint='web_bp.time_machine', name="Time Machine",
                                       endpoint="ui_time_machine", category="Go to UI"))
 
-        from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView
+        from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView, \
+            ConfigBackupView, ConfigRestoreView
         admin.add_view(MyRoleRequiredDataView('operator', Driver, db.session, category="Operator", endpoint="op_driver"))
         admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
                                         category="Operator"))
@@ -124,6 +139,9 @@ def create_app():
         admin.add_view(MyRoleRequiredDataView('admin', LabelFormat, db.session, category="DB Editor"))
         admin.add_view(MyRoleRequiredDataView('admin', User, db.session, category="DB Editor"))
         admin.add_view(MyRoleRequiredDataView('admin', Role, db.session, category="DB Editor"))
+
+        admin.add_view(ConfigBackupView('admin', category="Admin", name="Backup config to file"))
+        admin.add_view(ConfigRestoreView('admin', category="Admin", name="Restore config from file"))
 
 
         admin.add_view(MyRedirectView(target_endpoint='security.login', name="Login",

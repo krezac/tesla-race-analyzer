@@ -45,7 +45,7 @@ def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = 
                   order by date desc limit 1""")
     resultproxy = db.get_engine(bind='teslamate').execute(sql, {'car_id': car_id, 'dt': dt})
     resp = _cursor_one_to_dict(resultproxy)
-    resp['slow_data_date'] = resp['date']
+    resp['slow_data_date'] = resp['date'] if 'date' in resp else None
 
     if update_fast_data:
         sql = text("""select date, latitude, longitude, speed, power, odometer, elevation from positions 
@@ -53,7 +53,7 @@ def get_car_status(car_id: int, dt: pendulum.DateTime, update_fast_data: bool = 
                       order by date desc limit 1""")
         resultproxy = db.get_engine(bind='teslamate').execute(sql, {'car_id': car_id, 'dt': dt})
         resp2 = _cursor_one_to_dict(resultproxy)
-        resp2['fast_data_date'] = resp2['date']
+        resp2['fast_data_date'] = resp2['date']  if 'date' in resp2 else None
         if resp is not None and resp2:
             resp.update(resp2)
     return resp

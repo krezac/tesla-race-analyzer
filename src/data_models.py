@@ -44,10 +44,13 @@ class Configuration(BaseModel):
     update_status_seconds: int
     update_laps_seconds: int
 
-
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
             self.start_time = pendulum.from_timestamp(self.start_time.timestamp(), tz='utc')
+
+
+class ConfigBackupData(BaseModel):
+    configuration: Optional[Configuration]
 
 
 #####################################

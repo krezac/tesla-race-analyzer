@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField
+from flask_wtf.file import FileField, FileRequired
+from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField, BooleanField
 from wtforms.validators import DataRequired
 
 
@@ -23,3 +24,13 @@ class DriverChangeForm(FlaskForm):
     driver = SelectField('Driver', validators=[DataRequired()])
     copilot = SelectField('Copilot', validators=[])
     save = SubmitField(label='Save')
+
+
+class ConfigBackupForm(FlaskForm):
+    save = SubmitField(label='Save backup')
+
+
+class ConfigRestoreForm(FlaskForm):
+    backup_file = FileField(label='Select file', validators=[FileRequired()])
+    overwrite_config_file = BooleanField(label='Overwrite config file')
+    load = SubmitField(label='Load backup')
