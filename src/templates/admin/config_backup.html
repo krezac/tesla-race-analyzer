@@ -3,7 +3,7 @@
 {% block body %}
   {{ super() }}
   <div class="container">
-      <h1>Save Config Backup</h1>
+      <h1>Save backup file</h1>
       <form method="POST" action="{{ post_url }}">
         {{ form.csrf_token }}
         {{ form.save }}

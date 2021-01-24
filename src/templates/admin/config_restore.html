@@ -3,11 +3,17 @@
 {% block body %}
   {{ super() }}
   <div class="container">
-      <h1>Restore Config Backup</h1>
+      <h1>Restore from backup file</h1>
       <form method="POST" action="{{ post_url }}" enctype="multipart/form-data">
           {{ form.csrf_token }}
           <div>{{ form.backup_file }}</div>
-          <div>{{ form.overwrite_config_file.label }} {{ form.overwrite_config_file }}</div>
+          <div>&nbsp;</div>
+          <div>{{ form.restore_config.label }} {{ form.restore_config }}</div>
+          <div>&nbsp;&nbsp;&nbsp;{{ form.overwrite_config_file.label }} {{ form.overwrite_config_file }}</div>
+          <div>{{ form.restore_calculated_fields.label }} {{ form.restore_calculated_fields }}</div>
+          <div>{{ form.restore_label_formats.label }} {{ form.restore_label_formats }}</div>
+          <div>{{ form.restore_drivers.label }} {{ form.restore_drivers }}</div>
+          <div>{{ form.restore_driver_changes.label }} {{ form.restore_driver_changes }}</div>
           <div>&nbsp;</div>
           <div>{{ form.load }}</div>
     </form>

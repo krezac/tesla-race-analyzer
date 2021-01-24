@@ -1,8 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional, List, Callable, Type, Dict, Any
+from typing import Optional, List, Dict, Any
 import pendulum
 import datetime
-import os
 
 
 class DatabaseFieldDescription(BaseModel):
@@ -47,10 +46,6 @@ class Configuration(BaseModel):
     def post_process(self):
         if isinstance(self.start_time, datetime.datetime):
             self.start_time = pendulum.from_timestamp(self.start_time.timestamp(), tz='utc')
-
-
-class ConfigBackupData(BaseModel):
-    configuration: Optional[Configuration]
 
 
 #####################################
@@ -108,3 +103,103 @@ class JsonStaticSnapshot(BaseModel):
 
     forecast_raw: Optional[Dict[str, Any]]
     forecast_formatted: Optional[JsonLabelGroup]
+
+########################
+# to serialize/deserialize config
+
+
+class FieldScopeApi(BaseModel):
+    code: str
+    title: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+
+class FieldScopeApiList(BaseModel):
+    __root__: List[FieldScopeApi]
+
+
+class CalculatedFieldApi(BaseModel):
+    name: str
+    description: Optional[str]
+    return_type: str
+    calc_fn: str
+
+    class Config:
+        orm_mode = True
+
+
+class CalculatedFieldApiList(BaseModel):
+    title: Optional[str]
+    items: List[CalculatedFieldApi]
+
+
+class CalculatedFieldApiDict(BaseModel):
+    __root__: Dict[str, CalculatedFieldApiList]
+
+
+class LabelGroupApi(BaseModel):
+    code: str
+    title: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+
+class LabelGroupApiList(BaseModel):
+    __root__: List[LabelGroupApi]
+
+
+class LabelFormatApi(BaseModel):
+    field: str
+    label: Optional[str]
+    format_function: Optional[str]
+    format: Optional[str]
+    unit: Optional[str]
+    default: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+
+class LabelFormatApiList(BaseModel):
+    title: Optional[str]
+    items: List[LabelFormatApi]
+
+
+class LabelFormatApiDict(BaseModel):
+    __root__: Dict[str, LabelFormatApiList]
+
+
+class DriverApi(BaseModel):
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
+class DriverApiList(BaseModel):
+    __root__: Optional[List[DriverApi]]
+
+
+class DriverChangeApi(BaseModel):
+    driver: str
+    copilot: Optional[str]
+    valid_from: pendulum.DateTime
+    valid_to: Optional[pendulum.DateTime]
+
+    class Config:
+        orm_mode = True
+
+
+class DriverChangeApiList(BaseModel):
+    __root__: Optional[List[DriverChangeApi]]
+
+
+class ConfigBackupData(BaseModel):
+    configuration: Optional[Configuration]
+    calculated_fields: Optional[Dict[str, CalculatedFieldApiList]]
+    label_formats: Optional[Dict[str, LabelFormatApiList]]
+    drivers: Optional[DriverApiList]
+    driver_changes: Optional[DriverChangeApiList]

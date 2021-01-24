@@ -32,5 +32,10 @@ class ConfigBackupForm(FlaskForm):
 
 class ConfigRestoreForm(FlaskForm):
     backup_file = FileField(label='Select file', validators=[FileRequired()])
-    overwrite_config_file = BooleanField(label='Overwrite config file')
+    restore_config = BooleanField(label='Restore config', default=True)
+    overwrite_config_file = BooleanField(label='Overwrite config file', default=False)
+    restore_calculated_fields = BooleanField(label='Restore calculated_fields', default=True)
+    restore_label_formats = BooleanField(label='Restore label formats', default=True)
+    restore_drivers = BooleanField(label='Restore drivers', default=True)
+    restore_driver_changes = BooleanField(label='Restore driver changes', default=True)
     load = SubmitField(label='Load backup')

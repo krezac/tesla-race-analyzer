@@ -48,7 +48,6 @@ class MyTestLabelFormatTestView(MyRoleRequiredCustomView):
         return self.render('admin/test_label_format.html', form=form, post_url=url_for('test_label_format.index'), with_categories=True, field_list_url=url_for('api_bp.get_list_of_fields'), api_token=api_token)
 
 
-
 class DriverChangeView(MyRoleRequiredCustomView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
@@ -72,12 +71,18 @@ class ConfigBackupView(MyRoleRequiredCustomView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         form = ConfigBackupForm()
-        from src.db_models import Driver, DriverChange
         from src import db, configuration
         if form.validate_on_submit():
             now = pendulum.now(tz='utc')
+
+            from src.backup import get_calculated_fields_all, get_label_formats_all, get_drivers, get_driver_changes
+
             backup = ConfigBackupData(
-                configuration=configuration
+                configuration=configuration,
+                calculated_fields=get_calculated_fields_all(),
+                label_formats=get_label_formats_all(),
+                drivers=get_drivers(),
+                driver_changes=get_driver_changes()
             )
             return Response(backup.json(indent=2),
                             mimetype='application/json',
@@ -96,8 +101,24 @@ class ConfigRestoreView(MyRoleRequiredCustomView):
             backup_file = form.backup_file.data
             backup_data = backup_file.read()
             backup = ConfigBackupData.parse_raw(backup_data)
-            overwrite_config_file = form.overwrite_config_file
+            overwrite_config_file = form.overwrite_config_file.data
             from src import load_config
-            load_config(backup.configuration, overwrite_config_file.data)
-            flash(f"System state restored from backup {backup}", "info")
+            if form.restore_config.data:
+                load_config(backup.configuration, overwrite_config_file)
+                flash("Configuration restored", "info")
+                if overwrite_config_file:
+                    flash("Configuration file replaced", "info")
+            from src.backup import save_calculated_fields_all, save_label_formats_all, save_drivers, save_driver_changes
+            if form.restore_calculated_fields.data:
+                cnt = save_calculated_fields_all(backup.calculated_fields)
+                flash(f" {cnt} calculated fields restored", "info")
+            if form.restore_label_formats.data:
+                cnt = save_label_formats_all(backup.label_formats)
+                flash(f" {cnt} label formats restored", "info")
+            if form.restore_drivers.data:
+                cnt = save_drivers(backup.drivers)
+                flash(f" {cnt} drivers restored", "info")
+        if form.restore_driver_changes.data:
+            cnt = save_driver_changes(backup.driver_changes)
+            flash(f" {cnt} driver changes restored", "info")
         return self.render("admin/config_restore.html", form=form, with_categories=True)

@@ -12,65 +12,6 @@ from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 from src.data_processor.data_processor import data_processor
 from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
 
-
-class FieldScopeApi(BaseModel):
-    code: str
-    title: Optional[str]
-
-    class Config:
-        orm_mode = True
-
-
-class FieldScopeApiList(BaseModel):
-    __root__: List[FieldScopeApi]
-
-
-class CalculatedFieldApi(BaseModel):
-    name: str
-    description: Optional[str]
-    return_type: str
-    calc_fn: str
-    order_key: Optional[int]
-
-    class Config:
-        orm_mode = True
-
-
-class CalculatedFieldApiList(BaseModel):
-    title: Optional[str]
-    items: List[CalculatedFieldApi]
-
-
-class LabelGroupApi(BaseModel):
-    code: str
-    title: Optional[str]
-
-    class Config:
-        orm_mode = True
-
-
-class LabelGroupApiList(BaseModel):
-    __root__: List[LabelGroupApi]
-
-
-class LabelFormatApi(BaseModel):
-    field: str
-    label: Optional[str]
-    format_function: Optional[str]
-    format: Optional[str]
-    unit: Optional[str]
-    default: Optional[str]
-    order_key: Optional[int]
-
-    class Config:
-        orm_mode = True
-
-
-class LabelFormatApiList(BaseModel):
-    title: Optional[str]
-    items: List[LabelFormatApi]
-
-
 api_bp = Blueprint('api_bp', __name__,
                    template_folder='templates',
                    static_folder='static',
@@ -242,8 +183,10 @@ def get_graph_charging_lap_data():
 
 
 @api_bp.route('/config/label_groups')
-# @jwt_ex_role_required('admin')  # @jwt_required
+@jwt_ex_role_required('admin')
 def get_label_groups():
+    from src.data_models import LabelGroupApi, LabelGroupApiList
+
     groups = LabelGroup.query.all()
     wrapper = LabelGroupApiList(__root__=[])
     for g in groups:
@@ -253,8 +196,9 @@ def get_label_groups():
 
 
 @api_bp.route('/config/field_scopes')
-# @jwt_ex_role_required('admin')  # @jwt_required
+@jwt_ex_role_required('admin')
 def get_field_scopes():
+    from src.data_models import FieldScopeApi, FieldScopeApiList
     field_scopes = FieldScope.query.all()
     wrapper = FieldScopeApiList(__root__=[])
     for fs in field_scopes:
@@ -263,80 +207,100 @@ def get_field_scopes():
     return Response(wrapper.json(exclude={'__root__': {'__all__': {'order_key'}}}), mimetype='application/json')
 
 
-
-@api_bp.route('/config/fields/<field_scope_code>', methods=['GET', 'POST'])
+@api_bp.route('/config/calculated_fields/<field_scope_code>', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
 def configure_calculated_fields(field_scope_code):
-    field_scope: Optional[FieldScope] = FieldScope.query.filter_by(code=field_scope_code).first()
-    if not field_scope:
-        abort(400, 'invalid scope code')
+    from src.data_models import CalculatedFieldApiList
+    from src.backup import get_calculated_fields, save_calculated_fields
 
     if request.method == 'POST':
-        ensure_jwt_has_user_role('admin')
-        json_request = request.get_json()
-        new_scope_title = json_request.get('title')
-        j_list = json_request['items']
-        obj_list = []
-        order_key = 1
-        # transform to objects, add order key
-        for j in j_list:
-            obj = CalculatedField(**j, order_key=order_key, scope_id=field_scope.id)
-            order_key += 1
-            obj_list.append(obj)
-
-        # cleanup old records
-        calculated_fields = CalculatedField.query.filter_by(scope_id=field_scope.id).all()
-        for cf in calculated_fields:
-            db.session.delete(cf)
-        for obj in obj_list:
-            db.session.add(obj)
-        if field_scope.title != new_scope_title:
-            field_scope.title = new_scope_title
-            db.session.add(field_scope)
-        db.session.commit()
+        save_calculated_fields(field_scope_code, CalculatedFieldApiList.parse_obj(request.get_json()))
 
     # get the current status
-    fields = CalculatedField.query.filter_by(scope_id=field_scope.id).order_by(CalculatedField.order_key).all()
-    wrapper = CalculatedFieldApiList(title=field_scope.title, items=[])
-    for field in fields:
-        wrapper.items.append(CalculatedFieldApi.from_orm(field))
-
-    return Response(wrapper.json(exclude={'items': {'__all__': {'order_key'}}}), mimetype='application/json')
+    wrapper = get_calculated_fields(field_scope_code)
+    return Response(wrapper.json(), mimetype='application/json')
 
 
-@api_bp.route('/config/labels/<label_group_code>', methods=['GET', 'POST'])
+@api_bp.route('/config/calculated_fields', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
+def configure_calculated_fields_all():
+    from src.data_models import CalculatedFieldApiDict
+    from src.backup import get_calculated_fields_all, save_calculated_fields_all
+
+    if request.method == 'POST':
+        save_calculated_fields_all(CalculatedFieldApiDict.parse_obj(request.get_json()).__root__)
+
+    # get the current status
+    wrapper = CalculatedFieldApiDict(__root__=get_calculated_fields_all())
+    return Response(wrapper.json(), mimetype='application/json')
+
+
+@api_bp.route('/config/label_formats/<label_group_code>', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
 def configure_labels(label_group_code):
-    label_group: Optional[LabelGroup] = LabelGroup.query.filter_by(code=label_group_code).first()
-    if not label_group:
-        abort(400, 'invalid group code')
+    from src.data_models import LabelFormatApiList
+    from src.backup import get_label_formats, save_label_formats
 
     if request.method == 'POST':
-        ensure_jwt_has_user_role('admin')
-        json_request = request.get_json()
-        new_group_title = json_request.get('title')
-        j_list = json_request['items']
-        obj_list = []
-        order_key = 1
-        # transform to objects, add order key
-        for j in j_list:
-            obj = LabelFormat(**j, order_key=order_key, group_id=label_group.id)
-            order_key += 1
-            obj_list.append(obj)
-
-        # cleanup old records
-        label_formats = LabelFormat.query.filter_by(group_id=label_group.id).all()
-        for lf in label_formats:
-            db.session.delete(lf)
-        for obj in obj_list:
-            db.session.add(obj)
-        if label_group.title != new_group_title:
-            label_group.title = new_group_title
-            db.session.add(label_group)
-        db.session.commit()
+        save_label_formats(label_group_code, LabelFormatApiList.parse_obj(request.get_json()))
 
     # get the current status
-    labels = LabelFormat.query.filter_by(group_id=label_group.id).order_by(LabelFormat.order_key).all()
-    wrapper = LabelFormatApiList(title=label_group.title, items=[])
-    for label in labels:
-        wrapper.items.append(LabelFormatApi.from_orm(label))
+    wrapper = get_label_formats(label_group_code)
+    return Response(wrapper.json(), mimetype='application/json')
 
-    return Response(wrapper.json(exclude={'items': {'__all__': {'id', 'order_key'}}}), mimetype='application/json')
+
+@api_bp.route('/config/label_formats', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
+def configure_labels_all():
+    from src.data_models import LabelFormatApiDict
+    from src.backup import get_label_formats_all, save_label_formats_all
+
+    if request.method == 'POST':
+        save_label_formats_all(LabelFormatApiDict.parse_obj(request.get_json()).__root__)
+
+    # get the current status
+    wrapper = LabelFormatApiDict(__root__=get_label_formats_all())
+    return Response(wrapper.json(), mimetype='application/json')
+
+
+@api_bp.route('/config/drivers', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
+def configure_drivers():
+    from src.data_models import DriverApiList
+    from src.backup import get_drivers, save_drivers
+
+    if request.method == 'POST':
+        save_drivers(DriverApiList.parse_obj(request.get_json()))
+
+    # get the current status
+    wrapper = get_drivers()
+    return Response(wrapper.json(), mimetype='application/json')
+
+
+@api_bp.route('/config/driver_changes', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
+def configure_driver_changes():
+    from src.data_models import DriverChangeApiList
+    from src.backup import get_driver_changes, save_driver_changes
+
+    if request.method == 'POST':
+        save_driver_changes(DriverChangeApiList.parse_obj(request.get_json()))
+
+    # get the current status
+    wrapper = get_driver_changes()
+    return Response(wrapper.json(), mimetype='application/json')
+
+
+@api_bp.route('/config/configuration', methods=['GET', 'POST'])
+@jwt_ex_role_required('admin')
+def configure_configuration():
+    from src import configuration, load_config
+    from src.data_models import Configuration
+
+    if request.method == 'POST':
+        overwrite_config_file = request.args.get('overwrite_config_file', False)
+        config = Configuration.parse_obj(request.get_json())
+        load_config(config, overwrite_config_file)
+
+    # get the current status
+    return Response(configuration.json(), mimetype='application/json')
