@@ -14,13 +14,27 @@ class MyRedirectView(BaseView):
     """
     View to redirect to arbitrary page (i.e. security)
     """
-    def __init__(self, target_endpoint, *args, **kwargs):
+    def __init__(self, logged_user_required, target_endpoint, *args, **kwargs):
         super(MyRedirectView, self).__init__(*args, **kwargs)
+        self.logged_user_required = logged_user_required
         self.target_endpoint = target_endpoint
 
     @expose('/')
     def index(self):
         return redirect(url_for(self.target_endpoint))
+
+    def is_accessible(self):
+        if self.logged_user_required is None:  # does not matter
+            return True
+
+        if self.logged_user_required:
+            return current_user.is_active and current_user.is_authenticated
+        else:
+            return not current_user.is_active or not current_user.is_authenticated
+
+    def _handle_view(self, name):
+        if not self.is_accessible():
+            return redirect(url_for('security.login'))
 
 
 class MyRoleRequiredDataView(sqla.ModelView):

@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms.fields import IntegerField
+from wtforms.validators import DataRequired, NumberRange
 
 
 class TestCalculatedFieldForm(FlaskForm):
@@ -39,3 +40,8 @@ class ConfigRestoreForm(FlaskForm):
     restore_drivers = BooleanField(label='Restore drivers', default=True)
     restore_driver_changes = BooleanField(label='Restore driver changes', default=True)
     load = SubmitField(label='Load backup')
+
+
+class GenerateJwtTokenForm(FlaskForm):
+    hours = IntegerField(label='Token validity[hours]', validators=[DataRequired(), NumberRange(1, 72)], default=1)
+    generate = SubmitField(label='Generate')

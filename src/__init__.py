@@ -2,7 +2,7 @@
 from os import path, getenv
 from flask import Flask, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+# TODO not in use for now: from flask_migrate import Migrate
 from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_security.models import fsqla_v2 as fsqla
 from src.data_models import Configuration
@@ -76,7 +76,7 @@ def create_app():
         app.logger.addHandler(handler)
         app.logger.setLevel(logging.DEBUG)
 
-        _migrate = Migrate(app, db)  # ?? Create Database Models using db.create_all()
+        # TODO not in use for now: _migrate = Migrate(app, db)  # ?? Create Database Models using db.create_all()
 
         # load local config
         load_config(None, False)
@@ -110,17 +110,17 @@ def create_app():
         #admin.add_link(MenuLink(name='Login', url='/security/login', category='Login'))
         #admin.add_link(MenuLink(name='Logout', url='/security/logout', category='Login'))
 
-        admin.add_view(MyRedirectView(target_endpoint='web_bp.dashboard', name="Dashboard",
+        admin.add_view(MyRedirectView(logged_user_required=None, target_endpoint='web_bp.dashboard', name="Dashboard",
                                       endpoint="ui_dashboard", category="Go to UI"))
-        admin.add_view(MyRedirectView(target_endpoint='web_bp.map', name="Map",
+        admin.add_view(MyRedirectView(logged_user_required=None, target_endpoint='web_bp.map', name="Map",
                                       endpoint="ui_map", category="Go to UI"))
-        admin.add_view(MyRedirectView(target_endpoint='web_bp.laps', name="Laps",
+        admin.add_view(MyRedirectView(logged_user_required=None, target_endpoint='web_bp.laps', name="Laps",
                                       endpoint="ui_laps", category="Go to UI"))
-        admin.add_view(MyRedirectView(target_endpoint='web_bp.time_machine', name="Time Machine",
+        admin.add_view(MyRedirectView(logged_user_required=True, target_endpoint='web_bp.time_machine', name="Time Machine",
                                       endpoint="ui_time_machine", category="Go to UI"))
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView, \
-            ConfigBackupView, ConfigRestoreView
+            ConfigBackupView, ConfigRestoreView, GenerateJwtTokenView
         admin.add_view(MyRoleRequiredDataView('operator', Driver, db.session, category="Operator", endpoint="op_driver"))
         admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
                                         category="Operator"))
@@ -144,11 +144,12 @@ def create_app():
         admin.add_view(ConfigRestoreView('admin', category="Admin", name="Restore config from file"))
 
 
-        admin.add_view(MyRedirectView(target_endpoint='security.login', name="Login",
+        admin.add_view(MyRedirectView(logged_user_required=False, target_endpoint='security.login', name="Login",
                                       endpoint="sec_login", category="User"))
-        admin.add_view(MyRedirectView(target_endpoint='security.change_password', name="Change password",
+        admin.add_view(GenerateJwtTokenView(None, category="User", name="Generate API token", endpoint='generate_api_token'))
+        admin.add_view(MyRedirectView(logged_user_required=True, target_endpoint='security.change_password', name="Change password",
                                       endpoint="sec_change_password", category="User"))
-        admin.add_view(MyRedirectView(target_endpoint='security.logout', name="Logout",
+        admin.add_view(MyRedirectView(logged_user_required=True, target_endpoint='security.logout', name="Logout",
                                       endpoint="sec_logout", category="User"))
 
         # register background jobs
@@ -178,8 +179,10 @@ def create_app():
         # created for, and must return data that is json serializable
         @jwt.user_claims_loader
         def add_claims_to_access_token(identity):
+            from flask_security import current_user
+            str_roles = [r.name for r in current_user.roles]
             return {
-                'roles': ['admin', 'loser']
+                'roles': str_roles
             }
 
         @security.context_processor

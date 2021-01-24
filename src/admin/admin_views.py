@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 import pendulum
 
 from src.admin.admin_forms import TestLabelFormatForm, TestCalculatedFieldForm, DriverChangeForm, \
-    ConfigRestoreForm, ConfigBackupForm
+    ConfigRestoreForm, ConfigBackupForm, GenerateJwtTokenForm
 from src.data_processor.data_processor import data_processor
 from src.parent_views import MyRoleRequiredCustomView
 from src.data_models import ConfigBackupData
@@ -95,8 +95,6 @@ class ConfigRestoreView(MyRoleRequiredCustomView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         form = ConfigRestoreForm()
-        from src.db_models import Driver, DriverChange
-        from src import db
         if form.validate_on_submit():
             backup_file = form.backup_file.data
             backup_data = backup_file.read()
@@ -122,3 +120,22 @@ class ConfigRestoreView(MyRoleRequiredCustomView):
             cnt = save_driver_changes(backup.driver_changes)
             flash(f" {cnt} driver changes restored", "info")
         return self.render("admin/config_restore.html", form=form, with_categories=True)
+
+
+class GenerateJwtTokenView(MyRoleRequiredCustomView):
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        api_token = None
+        form = GenerateJwtTokenForm()
+        if form.validate_on_submit():
+            hours = form.hours.data
+            from flask_security import current_user
+            from datetime import timedelta
+            duration = timedelta(hours=hours)
+            api_token = create_access_token(identity="api::" + current_user.email, expires_delta=duration)
+        else:
+            if form.errors:
+                for err, err_value in form.errors.items():
+                    flash(f"{err}: {err_value}", "error")
+
+        return self.render("admin/generate_jwt_token.html", form=form, with_categories=True, api_token=api_token)

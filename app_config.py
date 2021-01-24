@@ -8,8 +8,8 @@ load_dotenv(path.join(basedir, '.env'))
 
 class AppConfig:
     """ application specific values """
-    CONFIG_DIR = 'etc'
-    CONFIG_FILE = 'config.json'
+    CONFIG_DIR = environ.get("CONFIG_DIR", "/etc/tran")
+    CONFIG_FILE = environ.get("CONFIG_FILE", "config.json")
     BACKGROUND_JOB_BASE = environ.get("TRAN_BACKGROUND_JOB_BASE", 'http://127.0.0.1:80/api/_internal')
 
     """Set Flask config variables."""

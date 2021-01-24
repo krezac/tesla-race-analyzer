@@ -1,0 +1,21 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  {{ super() }}
+  <div class="container">
+      <h1>Generate JWT API token</h1>
+      <form method="POST" action="{{ post_url }}">
+        {{ form.csrf_token }}
+        {{ form.hours.label }} {{ form.hours }}
+          <div>&nbsp;</div>
+        {{ form.generate }}
+    </form>
+
+  </div>
+    {% if api_token %}
+        <hr/>
+        <div><b>Generated token:</b></div>
+        <div style="word-wrap: break-word">{{ api_token }}</div>
+    {% endif %}
+{% endblock %}
+
