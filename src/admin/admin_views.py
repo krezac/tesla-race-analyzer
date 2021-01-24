@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 import pendulum
 
 from src.admin.admin_forms import TestLabelFormatForm, TestCalculatedFieldForm, DriverChangeForm, \
-    ConfigRestoreForm, ConfigBackupForm, GenerateJwtTokenForm
+    ConfigRestoreForm, ConfigBackupForm, GenerateJwtTokenForm, CreateNewUserForm
 from src.data_processor.data_processor import data_processor
 from src.parent_views import MyRoleRequiredCustomView
 from src.data_models import ConfigBackupData
@@ -139,3 +139,29 @@ class GenerateJwtTokenView(MyRoleRequiredCustomView):
                     flash(f"{err}: {err_value}", "error")
 
         return self.render("admin/generate_jwt_token.html", form=form, with_categories=True, api_token=api_token)
+
+
+class CreateNewUserView(MyRoleRequiredCustomView):
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        form = CreateNewUserForm()
+        from src.db_models import Role
+        from src import user_datastore, db
+        from flask_security import hash_password
+        db_roles = Role.query.order_by(Role.name).all()
+        roles = [(r.name, r.name) for r in db_roles]
+        form.roles.choices = roles
+
+        if form.validate_on_submit():
+            try:
+                user_datastore.create_user(email=form.email.data, password=hash_password(form.password.data))
+                db.session.commit()
+                for r in form.roles.data:
+                    user_datastore.add_role_to_user(form.email.data, r)
+                db.session.commit()
+
+                flash(f"User {form.email.data} created", "info")
+            except Exception as ex:
+                flash(f"Creating user failed: {ex}", "error")
+
+        return self.render("admin/create_new_user.html", form=form, with_categories=True)

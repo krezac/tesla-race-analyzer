@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
-from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField, BooleanField
+from wtforms import StringField, SelectField, TextAreaField, IntegerField, SubmitField, BooleanField, \
+    SelectMultipleField
 from wtforms.fields import IntegerField
 from wtforms.validators import DataRequired, NumberRange
 
@@ -45,3 +46,10 @@ class ConfigRestoreForm(FlaskForm):
 class GenerateJwtTokenForm(FlaskForm):
     hours = IntegerField(label='Token validity[hours]', validators=[DataRequired(), NumberRange(1, 72)], default=1)
     generate = SubmitField(label='Generate')
+
+
+class CreateNewUserForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired()])
+    password = StringField('Password', validators=[DataRequired()])
+    roles = SelectMultipleField('Roles', validators=[DataRequired()])
+    create = SubmitField(label='Create')

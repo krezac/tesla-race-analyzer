@@ -1,6 +1,6 @@
 """Initialize Flask app."""
 from os import path, getenv
-from flask import Flask, url_for
+from flask import Flask, url_for, g
 from flask_sqlalchemy import SQLAlchemy
 # TODO not in use for now: from flask_migrate import Migrate
 from flask_security import Security, SQLAlchemyUserDatastore, hash_password
@@ -30,6 +30,7 @@ scheduler = BackgroundScheduler()
 db = SQLAlchemy()
 jwt = JWTManager()
 admin = Admin(name='TRAn Admin', template_mode='bootstrap4')
+user_datastore = None
 
 # Globally accessible libraries
 configuration: Configuration = None
@@ -92,8 +93,10 @@ def create_app():
         from src.db_models import Role, User, Driver, DriverChange, LabelGroup, LabelFormat, FieldScope, CalculatedField
 
         # Setup Flask-Security
+        global user_datastore
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
         security = Security(app, user_datastore, register_blueprint=True)
+        g.user_datastore = user_datastore
 
         # Import parts of our application
         from src.blueprints.api.api import api_bp
@@ -120,7 +123,7 @@ def create_app():
                                       endpoint="ui_time_machine", category="Go to UI"))
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView, \
-            ConfigBackupView, ConfigRestoreView, GenerateJwtTokenView
+            ConfigBackupView, ConfigRestoreView, GenerateJwtTokenView, CreateNewUserView
         admin.add_view(MyRoleRequiredDataView('operator', Driver, db.session, category="Operator", endpoint="op_driver"))
         admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
                                         category="Operator"))
@@ -147,6 +150,7 @@ def create_app():
         admin.add_view(MyRedirectView(logged_user_required=False, target_endpoint='security.login', name="Login",
                                       endpoint="sec_login", category="User"))
         admin.add_view(GenerateJwtTokenView(None, category="User", name="Generate API token", endpoint='generate_api_token'))
+        admin.add_view(CreateNewUserView('admin', category="User", name="Create new user", endpoint='create_new_user'))
         admin.add_view(MyRedirectView(logged_user_required=True, target_endpoint='security.change_password', name="Change password",
                                       endpoint="sec_change_password", category="User"))
         admin.add_view(MyRedirectView(logged_user_required=True, target_endpoint='security.logout', name="Logout",
