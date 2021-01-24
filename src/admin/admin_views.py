@@ -14,23 +14,58 @@ class MyTestCalculatedFieldView(MyRoleRequiredCustomView):
 
     @expose('/', methods=['GET', 'POST'])
     def index(self):
+
         form = TestCalculatedFieldForm()
-        from src.db_models import FieldScope
+        from src import configuration, db
+        from src.db_models import FieldScope, CalculatedField
         form.field_scope.choices = [(g.code, g) for g in FieldScope.query.all()]
         if form.validate_on_submit():
             try:
                 return_value = data_processor.test_custom_calculated_field('__test_field__', form.field_scope.data, form.fn_code.data, "")  # TODO the return type is not needed for now
                 flash(Markup(f"Return value is <b>{return_value['__test_field__']}</b>"), "info")
+                if form.add.data:
+                    scope = FieldScope.query.filter_by(code=form.field_scope.data).first()
+                    cf_ok = CalculatedField.query.filter_by(scope_id=scope.id).order_by(CalculatedField.order_key.desc()).first()
+                    order_key = 1
+                    if cf_ok:
+                        order_key = cf_ok.order_key + 1
+                    cf = CalculatedField(
+                        name=form.name.data,
+                        description=form.description.data,
+                        return_type=form.return_type.data,
+                        calc_fn=form.fn_code.data,
+                        scope_id=scope.id,
+                        order_key=order_key
+                    )
+                    try:
+                        db.session.add(cf)
+                        db.session.commit()
+                        flash(f"Calculated field {form.name.data} stored to database for code {form.field_scope.data}", "info")
+                    except Exception as ex:
+                        db.session.rollback()
+                        flash(f"Can't add {form.name.data}: {ex}", "error")
             except Exception as ex:
                 flash(f"{type(ex).__name__}: {ex}", "error")
-        return self.render('admin/test_calculated_field.html', form=form, post_url=url_for('test_calculated_field.index'), with_categories=True)
+        laps = data_processor.get_laps_raw()
+        lap = laps[-2 if len(laps) > 1 else -1]
+        lap = {k: v for k, v in lap.items() if not isinstance(v, dict) and not isinstance(v, list)}
+        return self.render('admin/test_calculated_field.html', form=form,
+                           current_status=data_processor.get_status_raw(),
+                           position=data_processor.get_positions_raw()[-1],
+                           lap=lap,
+                           charging=data_processor.get_charging_process_list_raw()[-1],
+                           total=data_processor.get_total_raw(),
+                           forecast=data_processor.get_forecast_raw(),
+                           configuration=configuration.dict(),
+                           post_url=url_for('test_calculated_field.index'), with_categories=True)
 
 
 class MyTestLabelFormatTestView(MyRoleRequiredCustomView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         form = TestLabelFormatForm()
-        from src.db_models import LabelGroup
+        from src.db_models import LabelGroup, LabelFormat
+        from src import db
         form.label_group.choices = [(g.code, g) for g in LabelGroup.query.all()]
         from src.data_processor.labels import get_calc_functions
         form.format_fn.choices = get_calc_functions()
@@ -41,6 +76,30 @@ class MyTestLabelFormatTestView(MyRoleRequiredCustomView):
                                                         form.format.data, form.unit.data, form.default.data
                                                         )
                 flash(Markup(f"Return value for label formatting is <b>{return_value[0].value}</b>"), "info")
+                if form.add.data:
+                    group = LabelGroup.query.filter_by(code=form.label_group.data).first()
+                    lf_ok = LabelFormat.query.filter_by(group_id=group.id).order_by(LabelFormat.order_key.desc()).first()
+                    order_key = 1
+                    if lf_ok:
+                        order_key = lf_ok.order_key + 1
+                    lf = LabelFormat(
+                        label=form.label.data,
+                        field=form.field_name.data,
+                        format_function=form.format_fn.data,
+                        format=form.format.data,
+                        unit=form.unit.data,
+                        default=form.default.data,
+                        group_id=group.id,
+                        order_key=order_key
+                    )
+                    try:
+                        db.session.add(lf)
+                        db.session.commit()
+                        flash(f"Label format {form.field_name.data} stored to database for code {form.label_group.data}", "info")
+                    except Exception as ex:
+                        db.session.rollback()
+                        flash(f"Can't add {form.field_name.data}: {ex}", "error")
+
             except Exception as ex:
                 flash(f"{type(ex).__name__}: {ex}", "error")
                 raise ex
@@ -64,7 +123,8 @@ class DriverChangeView(MyRoleRequiredCustomView):
                 rec.valid_to = now
             db.session.add(DriverChange(driver=form.driver.data, copilot=form.copilot.data, valid_from=now))
             db.session.commit()
-        return redirect(url_for("admin.index"))
+            return redirect(url_for("admin.index"))
+        return self.render("admin/driver_change.html", form=form)
 
 
 class ConfigBackupView(MyRoleRequiredCustomView):

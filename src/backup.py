@@ -46,6 +46,7 @@ def save_calculated_fields(field_scope_code: str, req_data: CalculatedFieldApiLi
         # cleanup old records
         for cf in calculated_fields:
             db.session.delete(cf)
+        db.session.commit()
         # write new records
         for obj in db_obj_list:
             db.session.add(obj)
@@ -110,6 +111,7 @@ def save_label_formats(label_group_code: str, req_data: LabelFormatApiList) -> i
         # cleanup old records
         for lf in label_formats:
             db.session.delete(lf)
+        db.session.commit()
         # add new records
         for obj in db_obj_list:
             db.session.add(obj)

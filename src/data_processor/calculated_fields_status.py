@@ -19,7 +19,7 @@ def add_calculated_fields(*,
                           now_dt: pendulum.DateTime):
     """
     Add hardcoded calculated fields into current_item
-    Note the prototype is the same for all calcul;ated functions even if all inputs are not used
+    Note the prototype is the same for all calculated functions even if all inputs are not used
 
     :param current_item:
     :param initial_status:

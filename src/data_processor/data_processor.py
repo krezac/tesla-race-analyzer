@@ -278,7 +278,7 @@ class DataProcessor(BaseModel):
                                                     current_item_index=None,
                                                     now_dt=dt
                                                     )
-            return status
+        return status
 
     @function_timer()
     def _enhance_positions(self, positions: List[Dict[str, Any]], dt: pendulum.DateTime, *,
@@ -950,6 +950,8 @@ class DataProcessor(BaseModel):
                                                 current_status=self.current_status_raw,
                                                 position_list=self.car_positions_raw,
                                                 lap_list=self.lap_list_raw,
+                                                charging_process_list=self.charging_process_list_raw,
+                                                total=self.total_raw,
                                                 forecast=self.forecast_raw,
                                                 current_item_index=None,
                                                 configuration=configuration,

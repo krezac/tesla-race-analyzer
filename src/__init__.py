@@ -128,10 +128,10 @@ def create_app():
         admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
                                         category="Operator"))
 
-        admin.add_view(MyTestCalculatedFieldView('data', name="Calculated Field", endpoint="test_calculated_field",
-                                                 category="Test custom"))
-        admin.add_view(MyTestLabelFormatTestView('data', name="Formatted Label", endpoint="test_label_format",
-                                                 category="Test custom"))
+        admin.add_view(MyTestCalculatedFieldView('admin', name="Calculated fields", endpoint="test_calculated_field",
+                                                 category="Customize"))
+        admin.add_view(MyTestLabelFormatTestView('admin', name="Formatted labels", endpoint="test_label_format",
+                                                 category="Customize"))
 
         # pages for built-in db editor
         admin.add_view(MyRoleRequiredDataView('admin', Driver, db.session, category="DB Editor"))

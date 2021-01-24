@@ -49,7 +49,7 @@ class LabelGroup(db.Model):
     #formats = db.relationship('LabelFormat', backref='label_group', lazy=True)
 
     def __repr__(self):
-        return f"{self.title} ({self.code})"
+        return f"{self.code} ({self.title})"
 
     @classmethod
     def add_if_not_exists(cls, code: LabelFormatGroupEnum, title: str):
@@ -59,6 +59,11 @@ class LabelGroup(db.Model):
 
 class LabelFormat(db.Model):
     __tablename__ = 'label_formats'
+
+    # __table_args__ = (
+    #     db.UniqueConstraint('group_id', 'field', name='uix_label_format_group_field'),
+    #     db.UniqueConstraint('group_id', 'order_key', name='uix_label_format_group_order'),
+    # )
 
     id = db.Column(db.Integer, primary_key=True)
     group_id = db.Column(db.Integer, db.ForeignKey('label_groups.id'), nullable=False)
@@ -70,10 +75,11 @@ class LabelFormat(db.Model):
     default = db.Column(db.String, nullable=True)
     order_key = db.Column(db.Integer, nullable=False)
     group = db.relationship("LabelGroup", foreign_keys='LabelFormat.group_id')
+    db.UniqueConstraint(group_id, order_key)
 
     # explicit/composite unique constraint.  'name' is optional.
-    UniqueConstraint('group_code', 'field', name='uix_label_format_group_field')
-    UniqueConstraint('group_code', 'order_key', name='uix_label_format_group_order')
+    #UniqueConstraint('group_id', 'field', name='uix_label_format_group_field')
+    #UniqueConstraint('group_id', 'order_key', name='uix_label_format_group_order')
 
     def __repr__(self):
         return self.field
@@ -95,7 +101,7 @@ class FieldScope(db.Model):
     #fields = db.relationship('CalculatedField', backref='field_scope', lazy=True)
 
     def __repr__(self):
-        return f"{self.title} ({self.code})"
+        return f"{self.code} ({self.title})"
 
     @classmethod
     def add_if_not_exists(cls, code: CalculatedFieldScopeEnum, title: str):
@@ -115,9 +121,12 @@ class CalculatedField(db.Model):
     scope_id = db.Column(db.Integer, db.ForeignKey('field_scopes.id'), nullable=False)
     scope = db.relationship("FieldScope", foreign_keys='CalculatedField.scope_id')
 
+    db.UniqueConstraint(scope_id, name)
+    db.UniqueConstraint(scope_id, order_key)
+
     # explicit/composite unique constraint.  'name' is optional.
-    UniqueConstraint('scope_code', 'name', name='uix_field_scope_name')
-    UniqueConstraint('scope_code', 'order_key', name='uix_field_scope_order')
+    #UniqueConstraint('scope_id', 'name', name='uix_field_scope_name')
+    #UniqueConstraint('scope_id', 'order_key', name='uix_field_scope_order')
 
     @classmethod
     def get_all_by_scope(cls, field_scope_code):

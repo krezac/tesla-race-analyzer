@@ -3,14 +3,49 @@
 {% block body %}
   {{ super() }}
   <div class="container">
+  <h1>Test/Add calculated fields</h1>
     <div>
         <form method="POST" action="{{ post_url }}">
             <div>{{ form.csrf_token }}</div>
             <div>{{ form.field_scope.label }} {{ form.field_scope }} Scope defines the current_item meaning.</div>
+            <div>{{ form.name.label }} {{ form.name }} How field will be named in data.</div>
+            <div>{{ form.description.label }} {{ form.description }}</div>
             <div>{{ form.fn_code.label }} {{ form.fn_code(cols="80", rows="5") }} Must be expression (return value)</div>
+            <div>{{ form.return_type.label }} {{ form.return_type }} for now this is just informative</div>
              <div>{{ form.item_index.label }} {{ form.item_index }} Index of current item (matters for array-type data like laps). -1 means last one.</div>
-            <div><input type="submit" value="Test"></div>
+            <div>{{ form.test }}&nbsp;{{ form.add }}</div>
         </form>
     </div>
+  <hr/>
+    <h2>Available data example</h2>
+
+    <h3>Status fields (initial_status, current_status)</h3>
+    {% for name, value in current_status.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Position fields (position_list[x])</h3>
+    {% for name, value in position.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Lap fields (lap_list[x])</h3>
+    {% for name, value in lap.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Charging fields (charging_process_list[x])</h3>
+    {% for name, value in charging.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Total fields (total)</h3>
+    {% for name, value in total.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Forecast fields (forecast)</h3>
+    {% for name, value in forecast.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
+    <h3>Configuration fields (configuration)</h3>
+    {% for name, value in configuration.items() %}
+        <div><b>{{ name }}:</b> {{ value }}</div>
+    {% endfor %}
   </div>
 {% endblock %}

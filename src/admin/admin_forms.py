@@ -8,18 +8,26 @@ from wtforms.validators import DataRequired, NumberRange
 
 class TestCalculatedFieldForm(FlaskForm):
     field_scope = SelectField("Scope", validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired()])
+    description = StringField('Description', validators=[])
+    return_type = StringField('Return type', validators=[])
     fn_code = TextAreaField('Code', validators=[DataRequired()])
     item_index = IntegerField('Item Index', validators=[DataRequired()], default=-1)
+    test = SubmitField(label='Test')
+    add = SubmitField(label='Add')
 
 
 class TestLabelFormatForm(FlaskForm):
     label_group = SelectField('Label Group', validators=[DataRequired()])
+    label = StringField('Label', validators=[DataRequired()])
     field_name = StringField('Name', validators=[DataRequired()])
     format_fn = SelectField('Function', validators=[DataRequired()])
     format = StringField('Format', validators=[DataRequired()])
     unit = StringField('Unit', validators=[])
     default = StringField('Default', validators=[], default='---')
     item_index = IntegerField('Item Index', validators=[DataRequired()], default=-1)
+    test = SubmitField(label='Test')
+    add = SubmitField(label='Add')
 
 
 class DriverChangeForm(FlaskForm):

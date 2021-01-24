@@ -6,18 +6,19 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"
             integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 
-    <h1>Test Label Formatting</h1>
+    <h1>Test/Add Label formats</h1>
     <div>
         <form method="POST" action="{{ post_url }}">
             <div>{{ form.csrf_token }}</div>
             <div>{{ form.label_group.label }} {{ form.label_group }} Group defines the current_item meaning.</div>
-            <div>{{ form.field_name.label }} {{ form.field_name(size=20) }} Name of the field to be used from data.</div>
+            <div>{{ form.label.label }} {{ form.label(size=20) }} Label for the formatted data.</div>
+            <div>{{ form.field_name.label }} {{ form.field_name(size=20) }} Name of the field in data structure.</div>
             <div>{{ form.format_fn.label }} {{ form.format_fn }} Eval can deal with raw_value and configuration.</div>
             <div>{{ form.format.label }} {{ form.format(size=40) }} Format string (depends on function). Python expression in case of eval.</div>
             <div>{{ form.unit.label }} {{ form.unit(size=20) }} Appended after value. If you need space, add it here.</div>
             <div>{{ form.default.label }} {{ form.default(size=20) }} Output in case data is None.</div>
             <div>{{ form.item_index.label }} {{ form.item_index }} Index of current item (matters for array-type data like laps). -1 means last one.</div>
-            <div><input type="submit" value="Test"></div>
+            <div>{{ form.test }}&nbsp;{{ form.add }}</div>
         </form>
         <script type="text/javascript" charset="utf-8">
             function updateAvailableFields(selectedVal) {

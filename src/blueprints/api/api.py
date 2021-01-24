@@ -68,6 +68,18 @@ def get_chargings():
     return Response(resp.json(), mimetype='application/json')
 
 
+@api_bp.route('/car/total')
+def get_total():
+    resp = data_processor.get_total_formatted()
+    return Response(resp.json(), mimetype='application/json')
+
+
+@api_bp.route('/car/forecast')
+def get_forecast():
+    resp = data_processor.get_forecast_formatted()
+    return Response(resp.json(), mimetype='application/json')
+
+
 # not needed any more
 # @api_bp.route('/car/status/fields')
 # def get_status_fields():
@@ -124,17 +136,9 @@ def get_forecast_raw():
 def get_list_of_fields():
     """ This is just to show available fields in test window """
     label_group = request.args.get('label_group')
-    # TODO explicit if for total ?
     if label_group == LabelFormatGroupEnum.STATUS.value or label_group == LabelFormatGroupEnum.MAP.value:
         return get_status_raw()
-    elif label_group == LabelFormatGroupEnum.FORECAST:
-        return get_forecast_raw()
-    elif label_group == LabelFormatGroupEnum.CHARGING.value:
-        chp_list = data_processor.get_charging_process_list_raw()
-        if chp_list:
-            lap = chp_list[-1].copy()
-            return _jsonify(lap)
-    elif label_group == LabelFormatGroupEnum.RECENT_LAP.value or label_group == LabelFormatGroupEnum.PREVIOUS_LAPS.value:
+    elif label_group == LabelFormatGroupEnum.RECENT_LAP.value:
         laps = data_processor.get_laps_raw()
         if laps:
             lap = laps[-1].copy()
@@ -143,6 +147,26 @@ def get_list_of_fields():
             if 'pit_data' in lap:
                 lap['pit_data'] = {}  # we just don't want to dump
             return _jsonify(lap)
+    elif label_group == LabelFormatGroupEnum.PREVIOUS_LAPS.value:
+        laps = data_processor.get_laps_raw()
+        if laps:
+            lap = laps[-2 if len(laps) > 0 else -1].copy()
+            if 'lap_data' in lap:
+                lap['lap_data'] = {}  # we just don't want to dump
+            if 'pit_data' in lap:
+                lap['pit_data'] = {}  # we just don't want to dump
+            return _jsonify(lap)
+    elif label_group == LabelFormatGroupEnum.TOTAL.value:
+        total = data_processor.get_total_raw()
+        return _jsonify(total)
+    elif label_group == LabelFormatGroupEnum.FORECAST.value:
+        return get_forecast_raw()
+    elif label_group == LabelFormatGroupEnum.CHARGING.value:
+        chp_list = data_processor.get_charging_process_list_raw()
+        if chp_list:
+            lap = chp_list[-1].copy()
+            return _jsonify(lap)
+
     return _jsonify({})
 
 

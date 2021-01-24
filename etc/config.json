@@ -1,7 +1,7 @@
 {
   "anonymous_index_page": "web_bp.dashboard",
   "admin_index_page": "admin.index",
-  "car_id": 3,
+  "car_id": 2,
   "start_latitude": 49.532277,
   "start_longitude": 12.135311,
   "start_time": "2021-01-02T12:30:00+00:00",
