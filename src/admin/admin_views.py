@@ -116,9 +116,9 @@ class ConfigRestoreView(MyRoleRequiredCustomView):
             if form.restore_drivers.data:
                 cnt = save_drivers(backup.drivers)
                 flash(f" {cnt} drivers restored", "info")
-        if form.restore_driver_changes.data:
-            cnt = save_driver_changes(backup.driver_changes)
-            flash(f" {cnt} driver changes restored", "info")
+            if form.restore_driver_changes.data:
+                cnt = save_driver_changes(backup.driver_changes)
+                flash(f" {cnt} driver changes restored", "info")
         return self.render("admin/config_restore.html", form=form, with_categories=True)
 
 

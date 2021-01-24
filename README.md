@@ -8,13 +8,14 @@ I strongly suggeest to create a dedicated database for TRAn data.
 
 If you have Teslamate running, you can run following commands using it's credentials
 ```shell
-psql -h 127.0.0.1 -p 5432 -U teslamate -d teslamate -W
+docker-compose run database psql -h database -p 5432 -U teslamate -d teslamate -W
 ```
 ```sql
 drop database tran;  -- if the database exists already
 drop user tran;
 create database tran;
 create user tran with password 'tran_secret';
+grant all privileges on database tran to tran;
 ```
 
 The tables will be created on first app run. The explicit migration is not used for now.
