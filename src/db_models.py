@@ -137,3 +137,15 @@ class CalculatedField(db.Model):
 
     def __repr__(self):
         return self.name
+
+
+class CustomPage(db.Model):
+    __tablename__ = 'custom_pages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    template = db.Column(db.String, nullable=False)
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
+
+    def __repr__(self):
+        return self.name

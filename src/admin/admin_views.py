@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 import pendulum
 
 from src.admin.admin_forms import TestLabelFormatForm, TestCalculatedFieldForm, DriverChangeForm, \
-    ConfigRestoreForm, ConfigBackupForm, GenerateJwtTokenForm, CreateNewUserForm
+    ConfigRestoreForm, ConfigBackupForm, GenerateJwtTokenForm, CreateNewUserForm, CustomPageForm
 from src.data_processor.data_processor import data_processor
 from src.parent_views import MyRoleRequiredCustomView
 from src.data_models import ConfigBackupData
@@ -225,3 +225,51 @@ class CreateNewUserView(MyRoleRequiredCustomView):
                 flash(f"Creating user failed: {ex}", "error")
 
         return self.render("admin/create_new_user.html", form=form, with_categories=True)
+
+
+class CustomPageView(MyRoleRequiredCustomView):
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        form = CustomPageForm()
+        from src import db
+        from src.db_models import CustomPage
+
+        form.pages.choices = [("", "---")] + [(p.name, p.name) for p in CustomPage.query.filter_by(deleted=False).order_by(CustomPage.name).all()]
+
+        if form.validate_on_submit():
+            try:
+                if form.delete.data:
+                    page = CustomPage.query.filter_by(name=form.pages.data).first()
+                    if page:
+                        form.name.data = page.name
+                        form.template.data = page.template
+                        page.name = page.name + "_" + pendulum.now(tz='utc').to_iso8601_string()
+                        page.deleted = True
+                        db.session.commit()
+                        flash(f"Page {form.name.data} deleted (you can save it again)", "info")
+                    else:
+                        flash(f"Page {form.name.data} does not exist", "error")
+                if form.load.data:
+                    page = CustomPage.query.filter_by(name=form.pages.data).first()
+                    if page:
+                        form.name.data = page.name
+                        form.template.data = page.template
+                        flash(f"Page {form.name.data} loaded", "info")
+                    else:
+                        flash(f"Page {form.name.data} does not exist", "error")
+                elif form.save.data:
+                    page = CustomPage.query.filter_by(name=form.name.data).first()
+                    if page:
+                        page.template = form.template.data
+                    else:
+                        page = CustomPage(name=form.name.data, template=form.template.data)
+                        db.session.add(page)
+                    db.session.commit()
+                    flash(f"Page {form.name.data} saved", "info")
+            except Exception as ex:
+                flash(f"Creating page failed: {ex}", "error")
+                db.session.rollback()
+
+        form.pages.choices = [("", "---")] + [(p.name, p.name) for p in
+                                              CustomPage.query.filter_by(deleted=False).order_by(CustomPage.name).all()]
+        return self.render("admin/custom_page.html", form=form, with_categories=True)

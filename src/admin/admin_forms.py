@@ -61,3 +61,12 @@ class CreateNewUserForm(FlaskForm):
     password = StringField('Password', validators=[DataRequired()])
     roles = SelectMultipleField('Roles', validators=[DataRequired()])
     create = SubmitField(label='Create')
+
+
+class CustomPageForm(FlaskForm):
+    pages = SelectField("Existing pages", validators=[])
+    load = SubmitField(label='Load')
+    delete = SubmitField(label='Delete')
+    name = StringField('Page name', validators=[])
+    template = TextAreaField('template', validators=[])
+    save = SubmitField(label='Save')

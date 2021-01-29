@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, redirect, url_for
+from flask import Blueprint, jsonify, render_template, render_template_string, redirect, url_for, request, abort
 from flask_login import current_user
 import pendulum
 from datetime import timezone
@@ -70,6 +70,25 @@ def laps():
 @web_bp.route('/charts', methods=['GET'])
 def charts():
     return render_template("charts.html")
+
+
+@web_bp.route('/custom/<page_name>', methods=['GET'])
+def get_custom_page(page_name):
+    from src.db_models import CustomPage
+    page = CustomPage.query.filter_by(name=page_name).first()
+    if not page:
+        abort(404)
+
+    return render_template_string(page.template)  # TODO add all useful variables
+
+
+@web_bp.route('/custom', methods=['GET'])
+def get_custom_page_param():
+    page_name = request.args.get('page')
+    return get_custom_page(page_name)
+
+
+
 
 
 @web_bp.route('/time_machine', methods=['GET', 'POST'])

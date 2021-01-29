@@ -123,7 +123,7 @@ def create_app():
                                       endpoint="ui_time_machine", category="Go to UI"))
 
         from src.admin.admin_views import MyTestLabelFormatTestView, MyTestCalculatedFieldView, DriverChangeView, \
-            ConfigBackupView, ConfigRestoreView, GenerateJwtTokenView, CreateNewUserView
+            ConfigBackupView, ConfigRestoreView, GenerateJwtTokenView, CreateNewUserView, CustomPageView
         admin.add_view(MyRoleRequiredDataView('operator', Driver, db.session, category="Operator", endpoint="op_driver"))
         admin.add_view(DriverChangeView('operator', name="Driver Change", endpoint="driver_change",
                                         category="Operator"))
@@ -145,6 +145,7 @@ def create_app():
 
         admin.add_view(ConfigBackupView('admin', category="Admin", name="Backup config to file"))
         admin.add_view(ConfigRestoreView('admin', category="Admin", name="Restore config from file"))
+        admin.add_view(CustomPageView('admin', category="Admin", name="Create Custom Page", endpoint='create_custom_page'))
 
 
         admin.add_view(MyRedirectView(logged_user_required=False, target_endpoint='security.login', name="Login",
