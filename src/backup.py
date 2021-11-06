@@ -161,6 +161,7 @@ def save_drivers(req_data: DriverApiList) -> int:
         # cleanup old records
         for d in drivers:
             db.session.delete(d)
+        db.session.commit()
         # add new records
         for obj in db_obj_list:
             db.session.add(obj)

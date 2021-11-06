@@ -17,6 +17,6 @@
   "forecast_exclude_first_laps": 1,
   "forecast_use_last_laps": 5,
   "update_run_background": true,
-  "update_status_seconds": 999,
-  "update_laps_seconds": 999
+  "update_status_seconds": 2,
+  "update_laps_seconds": 2
 }

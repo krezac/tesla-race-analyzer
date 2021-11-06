@@ -58,8 +58,15 @@ def load_config(new_configuration, overwrite_file):
                 f.write(configuration.json(indent=2))
             configuration.json()
     else:
+        logger.info(f"config path: {orig_path}")
+        with open(orig_path) as f:
+            lines = f.readlines()
+            logger.info(f"config file payload: {lines}")
+        logger.info("reading config")
         configuration = Configuration.parse_file(orig_path)
+        logger.info("reading config done")
         configuration.post_process()
+        logger.info("reading config postprocess done")
 
 
 def create_app():
@@ -82,8 +89,8 @@ def create_app():
         # load local config
         load_config(None, False)
 
-        global background_job_update_laps_url, background_job_update_laps_url
-        background_job_update_laps_url = app.config["BACKGROUND_JOB_BASE"] + '/update_status'
+        global background_job_update_status_url, background_job_update_laps_url
+        background_job_update_status_url = app.config["BACKGROUND_JOB_BASE"] + '/update_status'
         background_job_update_laps_url = app.config["BACKGROUND_JOB_BASE"] + '/update_laps'
 
         # flask-security-too

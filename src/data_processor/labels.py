@@ -7,6 +7,9 @@ from src.data_models import JsonLabelItem
 logger = logging.getLogger('app.car_data')
 
 
+def format_fn_string(raw_value: str, format_str: str, now_dt: pendulum.DateTime) -> str:
+    return str(raw_value)
+
 
 def format_fn_float(raw_value: float, format_str: str, now_dt: pendulum.DateTime) -> str:
     return format_str % raw_value if format_str else str(raw_value)

@@ -37,13 +37,13 @@ def _jsonify(data):
 # @jwt_ex_role_required('megasuperadmin')  # @jwt_required
 def update_status():
     data_processor.update_status()
-    return "Success"
+    return "Success updating status"
 
 @api_bp.route('/_internal/update_laps')
 # @jwt_ex_role_required('megasuperadmin')  # @jwt_required
 def update_laps():
     data_processor.update_positions_laps_forecast()
-    return "Success"
+    return "Success updating laps"
 
 
 ################################################

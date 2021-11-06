@@ -36,7 +36,27 @@ class DataProcessor(BaseModel):
 
     forecast_raw: Optional[Dict[str, Any]]
     forecast_formatted: Optional[JsonLabelGroup]
-    
+
+    def _get_data_by_group_code(self, code):
+        # TODO bring in sync with get_list_of_fields
+        if code == 'initial':
+            return self.initial_status_raw
+        elif code == 'status':
+            return self.current_status_raw
+        elif code == 'positions':
+            return self.car_positions_raw[-1]
+        elif code == 'laps':
+            return self.lap_list_raw[-1]
+        elif code == 'total':
+            return self.total_raw
+        elif code == 'charging':
+            return self.charging_process_list_raw[-1]
+        elif code == 'forecast':
+            return self.forecast_raw
+        else:
+            logger.error(f"Unknown data group, please add: {code}")
+            return self.current_status_raw
+
     ################
     # data loaders #
     ################
@@ -573,6 +593,7 @@ class DataProcessor(BaseModel):
                                        forecast=self.forecast_raw,
                                        configuration=configuration, )
         self.current_status_raw = status
+        self.current_status_raw['meta_last_updated'] = pendulum.now('utc')
 
         # just to make sure all data exist before rendering if no bg jobs are allowed
         if not configuration or not self.total_raw or not self.forecast_raw:
@@ -974,7 +995,7 @@ class DataProcessor(BaseModel):
         # TODO generate current item and index based on the scope
 
         formatted_items = generate_labels([label_format],
-                                          self.current_status_raw, pendulum.now(tz='utc'))
+                                          self._get_data_by_group_code(group_code), pendulum.now(tz='utc'))
         return formatted_items
 
 
