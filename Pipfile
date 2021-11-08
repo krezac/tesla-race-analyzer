@@ -4,31 +4,25 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pytest = "==6.2.1"
+pytest = "*"
 
 [packages]
-flask = "==1.1.2"
-flask-security-too = "==3.4.5"
-flask-sqlalchemy = "==2.4.4"
-flask-migrate = "==2.5.3"
-flask-jwt-extended = "==3.25.0"
-flask-restful = "==0.3.8"
-flask-admin = "==1.5.7"
-
-gunicorn = "==20.0.4"
-
-apscheduler = "==3.6.3"
-
-email_validator = "==1.1.2"
-pysqlite3 = "==0.4.5"
-psycopg2-binary = "==2.8.6"
-python-dotenv = "==0.15.0"
-
-pendulum = "==2.1.2"
-requests = "==2.25.1"
-pydantic = "==1.7.3"
-
-geopy = "==2.1.0"
+flask = "*"
+flask-security-too = "*"
+flask-sqlalchemy = "*"
+flask-migrate = "*"
+flask-jwt-extended = "*"
+flask-restful = "*"
+flask-admin = "*"
+apscheduler = "*"
+email_validator = "*"
+pysqlite3 = "*"
+psycopg2-binary = "*"
+python-dotenv = "*"
+pendulum = "*"
+requests = "*"
+pydantic = "*"
+geopy="*"
 
 [requires]
 python_version = "3.8"

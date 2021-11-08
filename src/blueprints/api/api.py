@@ -12,6 +12,9 @@ from src.jwt_roles import jwt_ex_role_required, ensure_jwt_has_user_role
 from src.data_processor.data_processor import data_processor
 from src.enums import LabelFormatGroupEnum, CalculatedFieldScopeEnum
 
+import logging
+logger = logging.getLogger(__name__)
+
 api_bp = Blueprint('api_bp', __name__,
                    template_folder='templates',
                    static_folder='static',

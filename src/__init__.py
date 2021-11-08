@@ -9,6 +9,7 @@ from src.data_models import Configuration
 from flask_jwt_extended import JWTManager
 from flask_admin import Admin
 from flask_admin import helpers as admin_helpers
+
 import logging
 import sys
 import requests
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # global config (meant to be read only besides the admin doing POST case) !!!
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone="UTC")
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -189,7 +190,7 @@ def create_app():
         # called when creating access tokens, and add these claims to the said
         # token. This method is passed the identity of who the token is being
         # created for, and must return data that is json serializable
-        @jwt.user_claims_loader
+        @jwt.additional_claims_loader
         def add_claims_to_access_token(identity):
             from flask_security import current_user
             str_roles = [r.name for r in current_user.roles]
@@ -228,9 +229,10 @@ def create_app():
                 db.session.commit()
 
                 # Assign roles. Again, commit any database changes.
-                user_datastore.add_role_to_user(admin_email, 'admin')
-                user_datastore.add_role_to_user(admin_email, 'data')
-                user_datastore.add_role_to_user(admin_email, 'operator')
+                admin_user = user_datastore.find_user(False, email=admin_email)
+                user_datastore.add_role_to_user(admin_user, 'admin')
+                user_datastore.add_role_to_user(admin_user, 'data')
+                user_datastore.add_role_to_user(admin_user, 'operator')
                 db.session.commit()
 
             # populate code tables

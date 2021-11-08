@@ -2,13 +2,13 @@ from functools import wraps
 
 from flask import jsonify, abort, Response
 from flask_jwt_extended import (
-    verify_jwt_in_request, get_jwt_claims
+    verify_jwt_in_request, get_jwt
 )
 
 
 def ensure_jwt_has_user_role(role):
     verify_jwt_in_request()
-    claims = get_jwt_claims()
+    claims = get_jwt()
     if 'roles' not in claims or role not in claims['roles']:
         abort(403, f"'{role}' role needed")
 
